@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scr_sound",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scr_sound",
+  "parent":{
+    "name":"SwordPotion",
+    "path":"SwordPotion.yyp",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}
