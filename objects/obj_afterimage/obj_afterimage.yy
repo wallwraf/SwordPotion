@@ -10,8 +10,8 @@
   "name":"obj_afterimage",
   "overriddenProperties":[],
   "parent":{
-    "name":"SwordPotion",
-    "path":"SwordPotion.yyp",
+    "name":"Objects",
+    "path":"folders/Objects.yy",
   },
   "parentObjectId":null,
   "persistent":false,

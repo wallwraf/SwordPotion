@@ -6,6 +6,21 @@ hpChipTimer = 0;
 hpChipDelay = 60;
 hpChipSpeed = 0.06;
 
+status_init();
+buildScale = 0.5;
+baseStats = { atk: 5, def: 0, mag: 5, res: 0 };   // your base/level stats
+stats = {};                                       // computed: base + equipment
+affinity = array_create(array_length(global.damageTypes), 1);
+equipment = { weapon: undefined, armor: undefined, accessory: undefined };
+
+minDamage = 1;
+knockResist = 0;
+iframes = 0;
+iframeTime = SEC * 0.5;
+on_chip = function(_amount, _type) {};
+
+hitList = [];
+
 barRadius = 18;
 barSpan = 110;
 barThick = 3;
@@ -109,7 +124,7 @@ dashPx = x; dashPy = y;
 
 function move_and_collide_pixels()
 {
-	var _h = hSpd * global.timeScale + hSpdRem;
+	var _h = hSpd * global.timeScale * slowMult + hSpdRem;
 	var _v = vSpd * global.timeScale + vSpdRem;
 	
 	var _mx = round(_h);
@@ -160,6 +175,7 @@ function find_act_target(_dx, _dy)
 	
 	with (obj_actionable)
 	{
+		if (variable_instance_exists(id, "state") && state == EnemyState.DEAD) continue;
 		if (id == other.actTarget) continue;
 		
 		var _rx = x - other.actCx;
@@ -265,17 +281,101 @@ function approach(_val, _target, _amount)
 	return max(_val - _amount, _target);
 }
 
-// Health
-function take_damage(_amount)
+function is_dead() { return (state == PlayerState.DEAD || hp <= 0); }
+
+function take_chip(_amount)
 {
-	if (state == PlayerState.DEAD) return;
-	
 	hp = max(0, hp - _amount);
 	hpChipTimer = hpChipDelay;
 	barShowTimer = barShowTime;
-	
-	if (hp <= 0) state_change(PlayerState.DEAD);
-	else state_change(PlayerState.HURT);
+}
+
+function kill()
+{
+	hp = 0;
+	if (state == PlayerState.DEAD) return;
+	global.timeScaleTarget = 1;   // don't leave the world slowed if killed in the ACT menu
+	state_change(PlayerState.DEAD);
+}
+
+function stats_recalc()
+{
+	stats = {};
+	var _names = variable_struct_get_names(baseStats);
+	for (var i = 0; i < array_length(_names); i++) stats[$ _names[i]] = baseStats[$ _names[i]];
+
+	for (var t = 0; t < array_length(affinity); t++) affinity[t] = 1;
+
+	var _slots = variable_struct_get_names(equipment);
+	for (var s = 0; s < array_length(_slots); s++)
+	{
+		var _it = equipment[$ _slots[s]];
+		if (_it == undefined) continue;
+
+		var _bonus = _it[$ "bonus"] ?? {};
+		var _bn = variable_struct_get_names(_bonus);
+		for (var b = 0; b < array_length(_bn); b++)
+			stats[$ _bn[b]] = (stats[$ _bn[b]] ?? 0) + _bonus[$ _bn[b]];
+
+		var _res = _it[$ "resist"] ?? [];
+		for (var r = 0; r < array_length(_res); r++)
+			affinity[_res[r][0]] = max(0, affinity[_res[r][0]] + _res[r][1]);
+	}
+}
+
+// Call any time during gameplay. Pass undefined to unequip.
+function equip(_slot, _item)
+{
+	equipment[$ _slot] = _item;
+	stats_recalc();
+}
+
+function attack_type()
+{
+	var _w = equipment.weapon;
+	return (_w != undefined) ? _w.type : DamageType.BLUDGEONING;   // fists
+}
+
+function attack_power()
+{
+	return stat_get(global.damageTypes[attack_type()].atk) * outMult;
+}
+
+// Same pipeline as the enemy's receive_hit
+function take_damage(_atk, _type = DamageType.BLUDGEONING, _src = noone, _knock = 3)
+{
+	if (state == PlayerState.DEAD || iframes > 0 || hp <= 0) return 0;
+
+	var _row  = global.damageTypes[_type];
+	var _def  = stat_get(_row.def);
+	var _base = round(max(minDamage, _atk - _def) * affinity[_type] * vulnMult);
+	if (_base <= 0) return 0;   // immune
+
+	var _hit = _row[$ "hit"] ?? {};
+
+	hp = max(0, hp - _base);
+	hpChipTimer = hpChipDelay;
+	barShowTimer = barShowTime;
+	flashTimer = flashDur;
+	iframes = iframeTime;
+	show_number(_base, _row[$ "hitCol"] ?? c_white);
+
+	var _dir = -facing;
+	if (_src != noone && instance_exists(_src) && x != _src.x) _dir = sign(x - _src.x);
+	var _k = _knock * (_hit[$ "knock"] ?? 1) * (1 - knockResist);
+	hSpd = _dir * _k;
+	vSpd = -_k;
+
+	if (hp > 0) effect_apply(_type, _base);
+
+	if (hp <= 0) kill();
+	else
+	{
+		hurtMult = _hit[$ "stagger"] ?? 1;
+		if (state == PlayerState.ACTION) global.timeScaleTarget = 1;
+		state_change(PlayerState.HURT);
+	}
+	return _base;
 }
 
 function heal(_amount)
@@ -334,6 +434,7 @@ function draw_hp_bar(_px, _py, _s)
 	
 	// Current Health
 	draw_arc_band(_px, _py, _s, _a0, _a0 + barSpan * _fHp, hp_colour(_fHp), barThick, barAlpha);
+	draw_status_pips(_px, _py, _s);
 }
 
 // On New State
@@ -354,6 +455,7 @@ function state_change(_new_state)
 		case PlayerState.ATTACK:
 			sprite_index = spr.attack;
 			image_index = 0;
+			hitList = [];
 			break;
 			
 		case PlayerState.IN_AIR:
@@ -369,8 +471,6 @@ function state_change(_new_state)
 			break;
 		
 		case PlayerState.HURT:
-			hSpd = -facing * 1.5;
-			vSpd = -2;
 			break;
 			
 		case PlayerState.DASH_TO:
@@ -436,7 +536,7 @@ function state_free()
 	{
 		state_change(PlayerState.ATTACK);
 	}
-	else if (keyboard_check(ord("C")))
+	else if (kAction)
 	{
 		enter_act_menu();
 		return;
@@ -486,7 +586,7 @@ function state_inair()
 	{
 		state_change(PlayerState.ATTACK);
 	}
-	else if (keyboard_check(ord("C")))
+	else if (kAction)
 	{
 		enter_act_menu();
 		return;
@@ -530,6 +630,23 @@ function state_land()
 
 function state_attack()
 {
+	var _hitStart = 1;
+	var _hitEnd = 2;
+	
+	if (sprite_index == spr.attack && image_index >= _hitStart && image_index <= _hitEnd)
+	{
+		var _list = ds_list_create();
+		var _n = collision_rectangle_list(x + facing * 4, y - 20, x + facing * 30, y, obj_enemy, false, true, _list, false);
+		for (var i = 0; i < _n; i++)
+		{
+			var _e = _list[| i];
+			if (array_contains(hitList, _e)) continue;
+			array_push(hitList, _e);
+			_e.receive_hit(attack_power(), attack_type(), id, 2);
+		}
+		ds_list_destroy(_list);
+	}
+	
 	if (onGround)
 	{
 		hSpd = approach(hSpd, 0, groundFric);
@@ -573,8 +690,8 @@ function state_action()
 	if (actTarget != noone && !instance_exists(actTarget)) actTarget = noone;
 	
 	// Movement Keys
-	var _dx = keyboard_check_pressed(vk_right) - keyboard_check_pressed(vk_left);
-	var _dy = keyboard_check_pressed(vk_down) - keyboard_check_pressed(vk_up);
+	var _dx = input_pressed("right") - input_pressed("left");
+	var _dy = input_pressed("down")  - input_pressed("up");
 	
 	if (_dx != 0 || _dy != 0)
 	{
@@ -594,13 +711,13 @@ function state_action()
 		var _count = array_length(actTarget.actions);
 		if (_count > 1)
 		{
-			if (keyboard_check_pressed(ord("Z"))) actIndex = (actIndex + 1) mod _count;
-			if (keyboard_check_pressed(ord("X"))) actIndex = (actIndex - 1 + _count) mod _count;
+			if (input_pressed("attack")) actIndex = (actIndex + 1) mod _count;
+			if (input_pressed("run"))    actIndex = (actIndex - 1 + _count) mod _count;
 		}
 	}
 	
 	// Release
-	if (!keyboard_check(ord("C")))
+	if (!kAction)
 	{
 		global.timeScaleTarget = 1;
 		
@@ -614,11 +731,9 @@ function state_action()
 
 function state_hurt()
 {
+	hSpd = approach(hSpd, 0, onGround ? groundFric : airFric);
 	vSpd += grav;
-	if (stateTimer >= 20 && onGround)
-	{
-		state_change(PlayerState.FREE);
-	}
+	if (stateTimer >= 20 * hurtMult && onGround) state_change(PlayerState.FREE);
 }
 
 function state_dead()
@@ -690,7 +805,7 @@ function state_dash_to()
 	vSpd = lengthdir_y(dashSpd, _dir);
 	
 	// Afterimage
-	if (dashTimer mod 1 == 0)
+	if (dashTimer mod gfx().afterimage == 0)
 	{
 		instance_create_depth(x, y, depth + 1, obj_afterimage, 
 		{
@@ -701,3 +816,37 @@ function state_dash_to()
 		});
 	}
 }
+
+function draw_status_pips(_px, _py, _s)
+{
+	var _pips = [];
+	for (var i = 0; i < array_length(effects); i++)
+	{
+		var _fx = global.damageTypes[effects[i].type].fx;
+		array_push(_pips, { col: _fx.col, frac: clamp((effects[i].duration - effects[i].clock) / _fx.dur, 0, 1) });
+	}
+	for (var t = 0; t < array_length(buildup); t++)
+		if (buildup[t] > 0) array_push(_pips, { col: global.damageTypes[t].fx.col, frac: buildup[t] });
+
+	if (array_length(_pips) == 0) return;
+
+	var _w = 8 * _s, _h = 3 * _s, _gap = 3 * _s;
+	var _total = array_length(_pips) * (_w + _gap) - _gap;
+	var _x0 = _px - _total / 2;
+	var _y0 = _py + (barGap + barRadius * (1 - dcos(barSpan / 2)) + barThick + 3) * _s;
+
+	draw_set_alpha(barAlpha);
+	for (var i = 0; i < array_length(_pips); i++)
+	{
+		var _x = _x0 + i * (_w + _gap);
+		draw_set_colour(c_black);
+		draw_rectangle(_x - 1, _y0 - 1, _x + _w, _y0 + _h, false);
+		draw_set_colour(_pips[i].col);
+		draw_rectangle(_x, _y0, _x + max(0, _w * _pips[i].frac - 1), _y0 + _h - 1, false);
+	}
+	draw_set_alpha(1);
+	draw_set_colour(c_white);
+}
+
+equip("weapon", global.items.rusty_sword);
+equip("armor", global.items.chain_mail);

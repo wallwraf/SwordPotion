@@ -14,8 +14,8 @@
   "exportDir":"",
   "name":"snd_dash",
   "parent":{
-    "name":"SwordPotion",
-    "path":"SwordPotion.yyp",
+    "name":"Sounds",
+    "path":"folders/Sounds.yy",
   },
   "preload":false,
   "resourceType":"GMSound",

@@ -1,15 +1,22 @@
 {
   "$GMObject":"",
   "%Name":"obj_enemy",
-  "eventList":[],
+  "eventList":[
+    {"$GMEvent":"v1","%Name":"","collisionObjectId":null,"eventNum":0,"eventType":0,"isDnD":false,"name":"","resourceType":"GMEvent","resourceVersion":"2.0",},
+    {"$GMEvent":"v1","%Name":"","collisionObjectId":null,"eventNum":0,"eventType":3,"isDnD":false,"name":"","resourceType":"GMEvent","resourceVersion":"2.0",},
+    {"$GMEvent":"v1","%Name":"","collisionObjectId":null,"eventNum":0,"eventType":8,"isDnD":false,"name":"","resourceType":"GMEvent","resourceVersion":"2.0",},
+  ],
   "managed":true,
   "name":"obj_enemy",
   "overriddenProperties":[],
   "parent":{
-    "name":"SwordPotion",
-    "path":"SwordPotion.yyp",
+    "name":"Managers",
+    "path":"folders/Objects/Managers.yy",
   },
-  "parentObjectId":null,
+  "parentObjectId":{
+    "name":"obj_actionable",
+    "path":"objects/obj_actionable/obj_actionable.yy",
+  },
   "persistent":false,
   "physicsAngularDamping":0.1,
   "physicsDensity":0.5,
@@ -27,10 +34,7 @@
   "resourceType":"GMObject",
   "resourceVersion":"2.0",
   "solid":false,
-  "spriteId":{
-    "name":"spr_dummy",
-    "path":"sprites/spr_dummy/spr_dummy.yy",
-  },
+  "spriteId":null,
   "spriteMaskId":null,
   "visible":true,
 }

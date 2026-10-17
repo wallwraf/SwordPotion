@@ -12,6 +12,10 @@ if (flashTimer > 0)
 	gpu_set_fog(false, c_white, 0, 1);
 }
 
+draw_set_colour(c_red);
+draw_rectangle(x + facing * 4, y - 20, x + facing * 50, y + (sprite_height / 2) + 5, true);
+draw_set_colour(c_white);
+
 // Action Cursor
 if (state == PlayerState.ACTION)
 {
