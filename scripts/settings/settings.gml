@@ -1,3 +1,5 @@
+global.gameTitle = "SwordPotion";
+
 global.settingsDefault = { fullscreen: false, resolution: 3, graphics: 3, master: 1, sfx: 1, music: 1, language: 0 };
 
 global.bindsDefault = {
@@ -14,12 +16,14 @@ global.bindsDefault = {
 global.settings = json_parse(json_stringify(global.settingsDefault));
 global.binds = json_parse(json_stringify(global.bindsDefault));
 
+global.hitbox = false;
+
 global.resPercents = [0.25, 0.5, 0.75, 1];
 global.languages = ["English"];
 global.strings = {};
 global.musicInst = -1;
-global.mainMenuRoom = -1;
-global.menuSnd = { move: -1, select: -1, back: -1 };
+global.mainMenuRoom = rm_menu;
+global.menuSnd = { move: snd_menuMove, select: snd_menuSelect, back: snd_menuBack };
 
 global.gfxPresets = [
 	{ afterimage: 4, shake: 0.0, numberOutline: false, tint: false },
@@ -100,7 +104,7 @@ function music_apply()
 function menu_sfx(_name)
 {
 	var _s = global.menuSnd[$ _name];
-	if (_s != -1 && audio_exists(_s)) sfx_play(_s);
+	if (_s != -1 && audio_exists(_s)) sfx_play(_s, 1, 0, true);
 }
 
 // Rebindable input

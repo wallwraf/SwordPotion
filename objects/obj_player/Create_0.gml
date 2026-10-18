@@ -57,7 +57,7 @@ enum PlayerState
 	LAND,
 	ATTACK,
 	ACTION,
-	DASH_TO,
+	ACT_RUN,
 	HURT,
 	DEAD
 }
@@ -114,13 +114,235 @@ arrowOy = -12;
 flashTimer = 0;
 flashDur = 6;
 
-// DASH_TO action
-dashTarget = noone;
-dashSpd = 20;
-dashWindup = game_get_speed(gamespeed_fps) * 0.25;
-dashTimer = 0;
-dashPhase = 0;
-dashPx = x; dashPy = y;
+// ---- Player Act Slot: up to 6 equipped acts
+actSlots = array_create(6, PLAYER_ACT.NONE);
+actsKnown = array_create(PLAYER_ACT.COUNT, true);   // set false and unlock with act_learn() once drops exist
+
+actCur = undefined;
+actFn = undefined;
+actTargetRun = noone;
+actPhase = 0;
+actTimer = 0;
+actData = {};
+actAi = 0;
+actHeld = 0;
+actPicked = false;
+actHoldMin = 20;   // frames you must hold the menu before a no-target act can fire
+
+function act_equip(_slot, _act)   // _act = PLAYER_ACT.NONE clears the slot
+{
+	if (_slot < 0 || _slot >= array_length(actSlots)) return false;
+	if (_act != PLAYER_ACT.NONE)
+	{
+		if (!actsKnown[_act]) return false;
+		for (var i = 0; i < array_length(actSlots); i++)
+			if (actSlots[i] == _act) actSlots[i] = PLAYER_ACT.NONE;   // an act can only sit in one slot
+	}
+	actSlots[_slot] = _act;
+	return true;
+}
+
+function act_unequip(_slot) { return act_equip(_slot, PLAYER_ACT.NONE); }
+function act_learn(_act) { actsKnown[_act] = true; }
+
+function act_equipped()   // compact list in slot order
+{
+	var _out = [];
+	for (var i = 0; i < array_length(actSlots); i++)
+		if (actSlots[i] != PLAYER_ACT.NONE) array_push(_out, actSlots[i]);
+	return _out;
+}
+
+// ---- Running an act
+function act_start(_act, _target)
+{
+	actCur = global.acts[_act];
+	actTargetRun = _target;
+	actPhase = 0;
+	actTimer = 0;
+	actData = {};
+	actAi = 0;
+	hitList = [];
+
+	var _none = function() {};
+	actFn = {
+		enter: method(self, actCur[$ "enter"] ?? ((actCur[$ "cast"] != undefined) ? act_cast_enter : _none)),
+		step:  method(self, actCur[$ "step"]  ?? act_cast_step),
+		exit:  method(self, actCur[$ "exit"]  ?? _none)
+	};
+	state_change(PlayerState.ACT_RUN);
+}
+
+function act_end() { state_change(onGround ? PlayerState.FREE : PlayerState.IN_AIR); }
+
+function state_act_run()
+{
+	actTimer += global.timeScale;
+	actFn.step();
+}
+
+// ---- Helpers acts use
+function act_power(_mult = 1)
+{
+	return stat_get(global.damageTypes[actCur.type].atk) * actCur.power * _mult * outMult;
+}
+
+function act_gravity(_scale = 1)
+{
+	if (onGround) { if (vSpd > 0) vSpd = 0; }
+	else vSpd += grav * _scale;
+}
+
+function act_brake() { hSpd = approach(hSpd, 0, onGround ? groundFric : airFric); }
+
+function act_afterimage()
+{
+	actAi++;
+	if (actAi mod gfx().afterimage == 0)
+		instance_create_depth(x, y, depth + 1, obj_afterimage, { spr: sprite_index, img: image_index, xs: image_xscale, ys: image_yscale });
+}
+
+function act_hit_list(_list, _n, _mult, _knock)
+{
+	var _dealt = 0;
+	for (var i = 0; i < _n; i++)
+	{
+		var _e = _list[| i];
+		if (array_contains(hitList, _e)) continue;
+		array_push(hitList, _e);
+		_dealt += _e.receive_hit(act_power(_mult), actCur.type, id, _knock);
+	}
+	return _dealt;
+}
+
+function act_hit_rect(_x1, _y1, _x2, _y2, _mult = 1, _knock = 2)
+{
+	var _list = ds_list_create();
+	var _n = collision_rectangle_list(_x1, _y1, _x2, _y2, obj_enemy, false, true, _list, false);
+	var _d = act_hit_list(_list, _n, _mult, _knock);
+	ds_list_destroy(_list);
+	return _d;
+}
+
+function act_hit_circle(_cx, _cy, _r, _mult = 1, _knock = 2)
+{
+	var _list = ds_list_create();
+	var _n = collision_circle_list(_cx, _cy, _r, obj_enemy, false, true, _list, false);
+	var _d = act_hit_list(_list, _n, _mult, _knock);
+	ds_list_destroy(_list);
+	return _d;
+}
+
+function act_wave(_dir)
+{
+	instance_create_depth(x + _dir * 8, bbox_bottom, depth - 1, obj_act_wave, {
+		dir: _dir, spd: 4, life: 45, h: 16, dmg: act_power(1), type: actCur.type, src: id, col: actCur.col, knock: 3
+	});
+}
+
+function act_projectile(_x, _y, _tx, _ty)
+{
+	var _c = actCur.cast;
+	var _hv, _vv;
+	if (_c.grav > 0)
+	{
+		// ballistic arc that lands on the aim point
+		var _T = max(10, point_distance(_x, _y, _tx, _ty) / _c.spd);
+		_hv = (_tx - _x) / _T;
+		_vv = (_ty - _y) / _T - 0.5 * _c.grav * _T;
+	}
+	else
+	{
+		var _dir = point_direction(_x, _y, _tx, _ty);
+		_hv = lengthdir_x(_c.spd, _dir);
+		_vv = lengthdir_y(_c.spd, _dir);
+	}
+	instance_create_depth(_x, _y, depth - 1, obj_act_projectile, {
+		hv: _hv, vv: _vv, spd: _c.spd, grav: _c.grav, homing: _c.homing, radius: _c.radius, splash: _c.splash,
+		knock: _c.knock, col: actCur.col, type: actCur.type, dmg: act_power(), src: id, target: actTargetRun
+	});
+}
+
+// ---- Built-in cast routine: windup -> fire -> recover (kinds: proj, instant, burst)
+function act_cast_enter()
+{
+	sprite_index = spr.attack;
+	image_index = 0;
+	act_cast_aim();
+}
+
+function act_cast_aim()
+{
+	if (actTargetRun != noone && instance_exists(actTargetRun))
+	{
+		actData.tx = (actTargetRun.bbox_left + actTargetRun.bbox_right) / 2;
+		actData.ty = (actTargetRun.bbox_top + actTargetRun.bbox_bottom) / 2;
+		facing = (actData.tx >= x) ? 1 : -1;
+	}
+}
+
+function act_cast_step()
+{
+	var _c = actCur.cast;
+	act_gravity();
+	act_brake();
+	act_cast_aim();   // keeps tracking while the target lives
+
+	if (actPhase == 0)
+	{
+		if (actTimer >= _c.windup) { actPhase = 1; actTimer = 0; act_cast_fire(); }
+		return;
+	}
+	if (actTimer >= _c.recover) act_end();
+}
+
+function act_cast_fire()
+{
+	var _c  = actCur.cast;
+	var _cy = (bbox_top + bbox_bottom) / 2;
+	var _tx = actData[$ "tx"] ?? (x + facing * 100);
+	var _ty = actData[$ "ty"] ?? _cy;
+
+	switch (_c.kind)
+	{
+		case "proj":
+			act_projectile(x + facing * 10, _cy, _tx, _ty);
+			break;
+
+		case "instant":
+			if (actTargetRun == noone || !instance_exists(actTargetRun)) break;
+			act_fx("beam", { x1: _c.sky ? _tx : x, y1: _c.sky ? _ty - 160 : _cy, x2: _tx, y2: _ty, thick: 5, col: actCur.col, life: 14 });
+			if (is_enemy(actTargetRun))
+			{
+				var _dealt = actTargetRun.receive_hit(act_power(), actCur.type, id, _c.knock);
+				if (actCur[$ "onHit"] != undefined) method(self, actCur.onHit)(_dealt);
+			}
+			screen_shake(2);
+			break;
+
+		case "burst":
+			if (_c.shape == "rect")
+			{
+				act_hit_rect(x + facing * 4, bbox_top - 6, x + facing * _c.w, bbox_bottom, 1, _c.knock);
+				act_fx("ring", { x1: x + facing * _c.w * 0.5, y1: _cy, r0: 6, r1: 24, col: actCur.col, life: 12 });
+			}
+			else
+			{
+				act_hit_circle(x, _cy, _c.r, 1, _c.knock);
+				act_fx("ring", { x1: x, y1: _cy, r0: 8, r1: _c.r, col: actCur.col, life: 16 });
+			}
+			screen_shake(_c.shake);
+			break;
+	}
+}
+
+// ---- Test loadout (swap freely; the ACT menu cycles whatever is equipped)
+act_equip(0, PLAYER_ACT.LIGHTNING_FLASH);
+act_equip(1, PLAYER_ACT.FIREBOLT);
+act_equip(2, PLAYER_ACT.FIREBALL);
+act_equip(3, PLAYER_ACT.X_SLASH);
+act_equip(4, PLAYER_ACT.SLAM);
+act_equip(5, PLAYER_ACT.VAMPIRISM);
 
 function move_and_collide_pixels()
 {
@@ -161,9 +383,10 @@ function move_and_collide_pixels()
 function enter_act_menu()
 {
 	actTarget = noone;
-	actIndex = 0;
 	actCx = x; actCy = y;
 	actDrawX = x; actDrawY = y;
+	actHeld = 0;
+	actPicked = false;
 	global.timeScaleTarget = 1 - actSlow;
 	state_change(PlayerState.ACTION);
 }
@@ -175,7 +398,7 @@ function find_act_target(_dx, _dy)
 	
 	with (obj_actionable)
 	{
-		if (variable_instance_exists(id, "state") && state == EnemyState.DEAD) continue;
+		if (is_enemy(id) && state == EnemyState.DEAD) continue;
 		if (id == other.actTarget) continue;
 		
 		var _rx = x - other.actCx;
@@ -243,34 +466,6 @@ function draw_act_arrow()
 		var _px = _x1 + lengthdir_x(_padStart + _d, _dir);
 		var _py = _y1 + lengthdir_y(_padStart + _d, _dir);
 		draw_chevron(_px, _py, _dir, arrowSize, arrowCol, _fade);
-	}
-}
-
-function perform_action(_act, _target)
-{
-	switch (_act)
-	{
-		case PLAYER_ACT.NONE:
-			break;
-			
-		case PLAYER_ACT.SLAM:
-			hSpd = 0;
-			vSpd = 10;
-			state_change(PlayerState.IN_AIR);
-			break;
-		
-		case PLAYER_ACT.DASH_TO:
-			dashTarget = _target;
-			state_change(PlayerState.DASH_TO);
-			break;
-		
-		case PLAYER_ACT.ACTIVATE:
-			
-			break;
-		
-		default:
-			_target.on_act(_act, id);
-			break;
 	}
 }
 
@@ -473,16 +668,8 @@ function state_change(_new_state)
 		case PlayerState.HURT:
 			break;
 			
-		case PlayerState.DASH_TO:
-			hSpd = 0; vSpd = 0;
-			hSpdRem = 0; vSpdRem = 0;
-			sprite_index = spr.jump;
-			image_index = 0;
-			dashTimer = 0;
-			dashPhase = 0;
-			dashPx = x; dashPy = y;
-			var _dx = dashTarget.x - x;
-			if (_dx != 0) facing = sign(_dx);
+		case PlayerState.ACT_RUN:
+			actFn.enter();
 			break;
 	}
 }
@@ -673,59 +860,48 @@ function state_attack()
 function state_action()
 {
 	var _ts = global.timeScale;
-	
-	// Physics
-	if (onGround)
-	{
-		hSpd = approach(hSpd, 0, groundFric * _ts);
-		if (vSpd > 0) vSpd = 0;
-	}
-	else
-	{
-		hSpd = approach(hSpd, 0, airFric * _ts);
-		vSpd += grav * _ts;
-	}
-	
-	// If the target was destroyed, drop
+	actHeld++;   // real frames
+
+	if (onGround) { hSpd = approach(hSpd, 0, groundFric * _ts); if (vSpd > 0) vSpd = 0; }
+	else { hSpd = approach(hSpd, 0, airFric * _ts); vSpd += grav * _ts; }
+
 	if (actTarget != noone && !instance_exists(actTarget)) actTarget = noone;
-	
-	// Movement Keys
+
+	// Movement keys hop the cursor between targets
 	var _dx = input_pressed("right") - input_pressed("left");
 	var _dy = input_pressed("down")  - input_pressed("up");
-	
 	if (_dx != 0 || _dy != 0)
 	{
+		actPicked = true;
 		var _found = find_act_target(_dx, _dy);
-		if (_found != noone)
-		{
-			actTarget = _found;
-			actCx = _found.x;
-			actCy = _found.y;
-			actIndex = 0;
-		}
+		if (_found != noone) { actTarget = _found; actCx = _found.x; actCy = _found.y; }
 	}
-	
-	// Act Cycle Forward or Back
-	if (actTarget != noone)
+
+	// Attack cycles forward, run cycles backward through your equipped acts
+	var _list = act_equipped();
+	var _count = array_length(_list);
+	if (_count > 0)
 	{
-		var _count = array_length(actTarget.actions);
-		if (_count > 1)
-		{
-			if (input_pressed("attack")) actIndex = (actIndex + 1) mod _count;
-			if (input_pressed("run"))    actIndex = (actIndex - 1 + _count) mod _count;
-		}
+		actIndex = clamp(actIndex, 0, _count - 1);
+		if (input_pressed("attack")) { actIndex = (actIndex + 1) mod _count; actPicked = true; }
+		if (input_pressed("run"))    { actIndex = (actIndex - 1 + _count) mod _count; actPicked = true; }
 	}
-	
-	// Release
+
+	// Release: perform
 	if (!kAction)
 	{
 		global.timeScaleTarget = 1;
-		
-		var _t = actTarget;
-		var _a = (_t != noone) ? _t.actions[actIndex] : PLAYER_ACT.NONE;
-		
-		state_change(onGround ? PlayerState.FREE : PlayerState.IN_AIR);
-		if (_a != PLAYER_ACT.NONE) perform_action(_a, _t);
+
+		var _act = (_count > 0) ? _list[actIndex] : PLAYER_ACT.NONE;
+		var _ok = false;
+		if (_act != PLAYER_ACT.NONE)
+		{
+			// targeted acts need a target; the rest need any input, or a short hold, so a quick tap does nothing
+			_ok = global.acts[_act].needsTarget ? (actTarget != noone) : (actPicked || actHeld >= actHoldMin);
+		}
+
+		if (_ok) act_start(_act, actTarget);
+		else state_change(onGround ? PlayerState.FREE : PlayerState.IN_AIR);
 	}
 }
 
@@ -740,81 +916,6 @@ function state_dead()
 {
 	hSpd = 0;
 	game_restart();
-}
-
-// ACTIONS
-
-	// DASH_TO
-function end_dash()
-{
-	hSpd = 0; vSpd = 0;
-	hSpdRem = 0; vSpdRem = 0;
-	dashTarget = noone;
-	state_change(onGround ? PlayerState.FREE : PlayerState.IN_AIR);
-}
-function state_dash_to()
-{
-	// Target Vanished, Exit
-	if (!instance_exists(dashTarget)) { end_dash(); return; }
-	
-	// Hold the First Jump Frame (windup)
-	sprite_index = spr.jump;
-	image_index = 0;
-	
-	dashTimer++;
-	
-	if (dashPhase == 0)
-	{
-		hSpd = 0; vSpd = 0;
-		if (dashTimer >= dashWindup)
-		{
-			sfx_play(snd_dash);
-			dashPhase = 1;
-			flashTimer = flashDur;
-			screen_shake(6);
-		}
-		return;
-	}
-	
-	// Dash
-	var _dist = point_distance(x, y, dashTarget.x, dashTarget.y);
-	var _step = dashSpd * global.timeScale;
-	
-	// Arrived
-	if (_dist <= _step)
-	{
-		if (!place_meeting(dashTarget.x, dashTarget.y, obj_col))
-		{
-			x = dashTarget.x;
-			y = dashTarget.y;
-		}
-		end_dash();
-		return;
-	}
-	
-	// Blocked by Solid
-	if (x == dashPx && y == dashPy && dashTimer > dashWindup + 1)
-	{
-		end_dash();
-		return;
-	}
-	dashPx = x; dashPy = y;
-	
-	var _dir = point_direction(x, y, dashTarget.x, dashTarget.y);
-	hSpd = lengthdir_x(dashSpd, _dir);
-	vSpd = lengthdir_y(dashSpd, _dir);
-	
-	// Afterimage
-	if (dashTimer mod gfx().afterimage == 0)
-	{
-		instance_create_depth(x, y, depth + 1, obj_afterimage, 
-		{
-			spr: sprite_index,
-			img: image_index,
-			xs: image_xscale,
-			ys: image_yscale
-		});
-	}
 }
 
 function draw_status_pips(_px, _py, _s)
@@ -846,6 +947,31 @@ function draw_status_pips(_px, _py, _s)
 	}
 	draw_set_alpha(1);
 	draw_set_colour(c_white);
+}
+
+function draw_act_hud()
+{
+	var _list = act_equipped();
+	draw_set_font(fnt_arrow);
+	draw_set_halign(fa_center);
+
+	if (array_length(_list) == 0)
+	{
+		draw_set_colour(c_gray);
+		draw_text(x, bbox_top - 18, "No acts equipped");
+	}
+	else
+	{
+		var _d = global.acts[_list[clamp(actIndex, 0, array_length(_list) - 1)]];
+		var _warn = (_d.needsTarget && actTarget == noone);
+		draw_set_colour(_warn ? c_gray : _d.col);
+		draw_text(x, bbox_top - 18, "< [X]  " + _d.name + "  (" + string(actIndex + 1) + "/" + string(array_length(_list)) + ")" + "  [Z] >");
+		if (_warn) draw_text(x, bbox_top - 8, "select a target");
+	}
+
+	draw_set_colour(c_white);
+	draw_set_halign(fa_left);
+	draw_set_font(fnt_default);
 }
 
 equip("weapon", global.items.rusty_sword);

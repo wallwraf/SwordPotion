@@ -45,6 +45,8 @@ else
 	if (!_show && barAlpha < 0.02) barAlpha = 0;
 
 	// Temporary
+	if (keyboard_check_pressed(ord("H"))) global.hitbox = !global.hitbox;
+	
 	if (keyboard_check_pressed(ord("1"))) take_damage(15, DamageType.COLD);
 	if (keyboard_check_pressed(ord("2"))) take_damage(15, DamageType.FIRE);
 	if (keyboard_check_pressed(ord("3"))) take_damage(15, DamageType.ACID);
@@ -65,8 +67,7 @@ else
 		case PlayerState.ACTION:	state_action();	 break;
 		case PlayerState.HURT:		state_hurt();	 break;
 		case PlayerState.DEAD:		state_dead();	 break;
-
-		case PlayerState.DASH_TO:	state_dash_to(); break;
+		case PlayerState.ACT_RUN:	state_act_run(); break;
 	}
 
 	// Movement

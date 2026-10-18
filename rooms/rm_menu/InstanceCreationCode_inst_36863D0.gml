@@ -1,0 +1,2 @@
+ingame = false;
+startOpen = true;

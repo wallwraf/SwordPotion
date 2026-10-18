@@ -8,6 +8,7 @@ if (capture)
 	open = true;
 	openAnim = 0;
 	stack = [root];
+	reset_page();
 	cursor = [0];
 	io_clear();
 }

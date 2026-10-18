@@ -1,16 +1,43 @@
+if (!ready) menu_setup();
+
 if (!open)
 {
-	if (ingame && !capture && keyboard_check_pressed(vk_escape)
+	if (ingame && !instance_exists(obj_slab) && !capture && keyboard_check_pressed(vk_escape)
 		&& instance_exists(obj_player) && obj_player.state != PlayerState.DEAD) capture = true;
 	exit;
 }
 
-openAnim = min(1, openAnim + 0.12);
+// ---- Animation clocks (real time)
+openAnim = min(1, openAnim + 0.1);
+bgT++;
+pageAge++;
+kick *= 0.82;
+bgCol = merge_colour(bgCol, current_tint(), 0.12);
+
+for (var i = 0; i < array_length(dust); i++)
+{
+	var _d = dust[i];
+	_d.x += _d.vx;
+	_d.y -= _d.vy;
+	if (_d.y < -0.02) { _d.y = 1.02; _d.x = random(1); }
+	if (_d.x > 1.02) _d.x = -0.02;
+}
+for (var i = 0; i < array_length(glints); i++)
+{
+	var _g = glints[i];
+	_g.life += _g.spd;
+	if (_g.life >= 1) { _g.life = 0; _g.x = random(1); _g.y = random(1); _g.s = random_range(7, 15); }
+}
 
 var _items = menu_items();
 var _level = array_length(stack) - 1;
-cursor[_level] = clamp(cursor[_level], 0, array_length(_items) - 1);
+var _count = array_length(_items);
+cursor[_level] = clamp(cursor[_level], 0, _count - 1);
+for (var i = 0; i < _count; i++) sel[i] = lerp(sel[i], (i == cursor[_level]) ? 1 : 0, 0.3);
 var _it = _items[cursor[_level]];
+
+// Input is locked while a swipe plays
+if (instance_exists(obj_slab)) exit;
 
 // ---- Waiting for a key to bind
 if (rebinding)
@@ -27,7 +54,7 @@ if (rebinding)
 	exit;
 }
 
-var _up   = nav(0), _down = nav(1), _left = nav(2), _right = nav(3);
+var _up		 = nav(0), _down = nav(1), _left = nav(2), _right = nav(3);
 var _confirm = keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_space) || keyboard_check_pressed(ord("Z"));
 var _back    = keyboard_check_pressed(vk_escape) || keyboard_check_pressed(vk_shift) || keyboard_check_pressed(ord("X"));
 
@@ -42,10 +69,9 @@ if (dropOpen)
 	exit;
 }
 
-// ---- Move the cursor
-var _count = array_length(_items);
-if (_up)   { cursor[_level] = (cursor[_level] - 1 + _count) mod _count; menu_sfx("move"); }
-if (_down) { cursor[_level] = (cursor[_level] + 1) mod _count;          menu_sfx("move"); }
+// ---- Move the cursor (every change kicks the screen)
+if (_up)   { cursor[_level] = (cursor[_level] - 1 + _count) mod _count; kick = 1; menu_sfx("move"); }
+if (_down) { cursor[_level] = (cursor[_level] + 1) mod _count;          kick = 1; menu_sfx("move"); }
 _it = _items[cursor[_level]];
 
 // ---- Left/right adjusts values
@@ -63,9 +89,10 @@ if (_h != 0 && node_enabled(_it))
 			menu_sfx("move");
 			break;
 		case "dropdown":
-			var _no = array_length(_it.options);
-			_it.set((_it.get() + _h + _no) mod _no);
-			menu_sfx("move");
+			dropOpen = true;
+			dropIndex = _it.get();
+			ddScroll = 0;
+			menu_sfx("select");
 			break;
 		case "rebind":
 			_it.slot = clamp(_it.slot + _h, 0, 1);
@@ -80,14 +107,13 @@ if (_confirm && node_enabled(_it))
 	switch (_it.type)
 	{
 		case "menu":
-			array_push(stack, _it);
-			array_push(cursor, 0);
+			trans_start("push", _it, item_tint(_it, cursor[_level], _level));
 			menu_sfx("select");
 			break;
 		case "button":
 			menu_sfx("select");
-			_it.action();
-			exit;   // the action may have closed the menu
+			trans_start("action", _it, item_tint(_it, cursor[_level], _level));
+			exit;
 		case "toggle":
 			_it.set(!_it.get());
 			menu_sfx("select");
@@ -109,10 +135,11 @@ if (_back)
 {
 	if (array_length(stack) > 1)
 	{
-		array_pop(stack);
-		array_pop(cursor);
-		settings_save();
+		trans_start("pop", undefined, tint_of(array_length(stack) - 2));
 		menu_sfx("back");
 	}
-	else if (ingame) menu_close();
+	else if (ingame)
+	{
+		trans_start("action", { action: function() { with (obj_menu) menu_close(); } }, current_tint());
+	}
 }

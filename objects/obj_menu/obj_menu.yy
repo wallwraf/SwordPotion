@@ -11,8 +11,8 @@
   "name":"obj_menu",
   "overriddenProperties":[],
   "parent":{
-    "name":"Managers",
-    "path":"folders/Objects/Managers.yy",
+    "name":"Menu",
+    "path":"folders/Objects/Managers/Menu.yy",
   },
   "parentObjectId":null,
   "persistent":false,

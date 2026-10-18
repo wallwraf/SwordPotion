@@ -1,31 +1,35 @@
-function mn_menu(_label, _items, _visible = undefined)
-{ return { type: "menu", label: _label, items: _items, visible: _visible, enabled: undefined }; }
+function mn_menu(_label, _items, _visible = undefined, _tint = undefined)
+{ return { type: "menu", label: _label, items: _items, visible: _visible, enabled: undefined, tint: _tint }; }
 
-function mn_button(_label, _action, _visible = undefined)
-{ return { type: "button", label: _label, action: _action, visible: _visible, enabled: undefined }; }
+function mn_button(_label, _action, _visible = undefined, _tint = undefined)
+{ return { type: "button", label: _label, action: _action, visible: _visible, enabled: undefined, tint: _tint }; }
 
 function mn_toggle(_label, _get, _set)
 { return { type: "toggle", label: _label, get: _get, set: _set, visible: undefined, enabled: undefined }; }
 
-function mn_dropdown(_label, _options, _get, _set, _enabled = undefined)
-{ return { type: "dropdown", label: _label, options: _options, get: _get, set: _set, visible: undefined, enabled: _enabled }; }
+function mn_dropdown(_label, _options, _get, _set, _enabled = undefined, _tint = undefined)
+{ return { type: "dropdown", label: _label, options: _options, get: _get, set: _set, visible: undefined, enabled: _enabled, tint: _tint }; }
 
 function mn_slider(_label, _get, _set, _step = 0.05)
 { return { type: "slider", label: _label, get: _get, set: _set, step: _step, visible: undefined, enabled: undefined }; }
 
-function mn_rebind(_label, _action)
-{ return { type: "rebind", label: _label, action: _action, slot: 0, visible: undefined, enabled: undefined }; }
-
-
+function mn_rebind(_label, _action, _hint = "", _tint = undefined)
+{ return { type: "rebind", label: _label, action: _action, slot: 0, hint: _hint, visible: undefined, enabled: undefined, tint: _tint }; }
 
 function controls_items()
 {
 	var _acts = [
-		["left", "Left"], ["right", "Right"], ["down", "Down"], ["up", "Up"],
-		["jump", "Jump"], ["run", "Run / Previous"], ["attack", "Attack / Next"], ["action", "Action Menu"]
+		["left",   "Left",     "Move left."],
+		["right",  "Right",    "Move right."],
+		["up",     "Up",       "Aim up. Also moves the Action cursor."],
+		["down",   "Down",     "Aim down. Also moves the Action cursor."],
+		["jump",   "Jump",     "Hold for a higher jump."],
+		["run",    "Run",      "Hold to run. In the Action menu, cycles acts backward."],
+		["attack", "Attack",   "Swing your weapon. In the Action menu, cycles acts forward."],
+		["action", "Act Menu", "Hold to open the Action menu, release to perform the act."]
 	];
 	var _items = [];
-	for (var i = 0; i < array_length(_acts); i++) array_push(_items, mn_rebind(_acts[i][1], _acts[i][0]));
+	for (var i = 0; i < array_length(_acts); i++) array_push(_items, mn_rebind(_acts[i][1], _acts[i][0], _acts[i][2]));
 	array_push(_items, mn_button("Reset to Defaults", function() {
 		global.binds = json_parse(json_stringify(global.bindsDefault));
 		settings_save();
@@ -33,11 +37,20 @@ function controls_items()
 	return _items;
 }
 
+function status_tint(_type) { return global.damageTypes[_type].fx.col; }
+
+function ease_out_back(_t)
+{
+	var _c1 = 1.70158;
+	var _c3 = _c1 + 1;
+	return 1 + _c3 * power(_t - 1, 3) + _c1 * power(_t - 1, 2);
+}
+
 // The whole menu structure. Edit this to add or move items.
 function menu_build()
 {
 	return mn_menu("Main Menu", [
-		mn_button("Continue", function() { with (obj_menu) menu_continue(); }),
+		mn_button(global.menuIngame ? "Continue" : "Start", function() { with (obj_menu) menu_continue(); }, undefined, status_tint(DamageType.COLD)),
 
 		mn_menu("Settings", [
 			mn_menu("Video", [
@@ -51,27 +64,29 @@ function menu_build()
 				mn_dropdown("Graphics", ["Potato", "Low", "Medium", "High"],
 					function() { return global.settings.graphics; },
 					function(_v) { global.settings.graphics = _v; })
-			]),
+			], undefined, status_tint(DamageType.LIGHTNING)),
 			mn_menu("Audio", [
-				mn_slider("Master",
+				mn_slider("VOL",
 					function() { return global.settings.master; },
 					function(_v) { global.settings.master = _v; audio_apply(); }),
-				mn_slider("Sound Effects",
+				mn_slider("SFX",
 					function() { return global.settings.sfx; },
 					function(_v) { global.settings.sfx = _v; audio_apply(); }),
-				mn_slider("Music",
+				mn_slider("MUS",
 					function() { return global.settings.music; },
 					function(_v) { global.settings.music = _v; audio_apply(); })
-			]),
-			mn_menu("Controls", controls_items()),
+			], undefined, status_tint(DamageType.PSYCHIC)),
+			mn_menu("Controls", controls_items(), undefined, status_tint(DamageType.ACID)),
 			mn_dropdown("Language", global.languages,
 				function() { return global.settings.language; },
-				function(_v) { global.settings.language = _v; })
+				function(_v) { global.settings.language = _v; },
+				undefined, status_tint(DamageType.RADIANT))
 		]),
 
 		mn_button("Quit to Menu",
 			function() { with (obj_menu) menu_quit_to_menu(); },
-			function() { return global.menuIngame; }),
-		mn_button("Quit to Desktop", function() { game_end(); })
+			function() { return global.menuIngame; },
+			status_tint(DamageType.NECROTIC)),
+		mn_button("Quit to Desktop", function() { game_end(); }, undefined, status_tint(DamageType.ACID))
 	]);
 }
