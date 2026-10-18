@@ -11,7 +11,6 @@ buildScale = 0.5;
 baseStats = { atk: 5, def: 0, mag: 5, res: 0 };   // your base/level stats
 stats = {};                                       // computed: base + equipment
 affinity = array_create(array_length(global.damageTypes), 1);
-equipment = { weapon: undefined, armor: undefined, accessory: undefined };
 
 minDamage = 1;
 knockResist = 0;
@@ -129,18 +128,128 @@ actHeld = 0;
 actPicked = false;
 actHoldMin = 20;   // frames you must hold the menu before a no-target act can fire
 
-function act_equip(_slot, _act)   // _act = PLAYER_ACT.NONE clears the slot
+if (!instance_exists(obj_inventory)) instance_create_depth(0, 0, -100, obj_inventory);
+
+// ---- Inventory and equipment
+invItems  = array_create(inv_capacity(), undefined);   // capacity = the left page's grid
+actItems  = array_create(6, undefined);                // act tomes in the six act slots (actSlots holds the acts they teach)
+equipment = { helmet: undefined, body: undefined, legs: undefined, acc1: undefined, acc2: undefined, weapon: undefined };
+typeBonus = array_create(array_length(global.damageTypes), 0);
+
+function stats_recalc()
 {
-	if (_slot < 0 || _slot >= array_length(actSlots)) return false;
-	if (_act != PLAYER_ACT.NONE)
-	{
-		if (!actsKnown[_act]) return false;
-		for (var i = 0; i < array_length(actSlots); i++)
-			if (actSlots[i] == _act) actSlots[i] = PLAYER_ACT.NONE;   // an act can only sit in one slot
-	}
-	actSlots[_slot] = _act;
-	return true;
+	var _r = stats_for(equipment, baseStats);
+	stats = _r.stats;
+	for (var t = 0; t < array_length(affinity); t++) { affinity[t] = _r.affinity[t]; typeBonus[t] = _r.typeBonus[t]; }
 }
+
+function equip_key_for(_def)
+{
+	switch (_def.slot)
+	{
+		case "weapon": case "helmet": case "body": case "legs": return _def.slot;
+		case "accessory": return (equipment.acc1 == undefined) ? "acc1" : ((equipment.acc2 == undefined) ? "acc2" : "acc1");
+	}
+	return "";
+}
+
+function inv_add(_item)
+{
+	for (var i = 0; i < array_length(invItems); i++)
+		if (invItems[i] == undefined) { invItems[i] = _item; return true; }
+	return false;
+}
+
+function inv_free_slot()
+{
+	for (var i = 0; i < array_length(invItems); i++) if (invItems[i] == undefined) return i;
+	return -1;
+}
+
+function act_slot_set(_slot, _item)
+{
+	actItems[_slot] = _item;
+	actSlots[_slot] = (_item == undefined) ? PLAYER_ACT.NONE : item_def(_item).act;
+}
+
+// Returns a message for the tooltip ("" = success)
+function inv_activate(_i)
+{
+	var _it = invItems[_i];
+	if (_it == undefined) return "";
+	var _def = item_def(_it);
+
+	if (_def.slot == "act")
+	{
+		if (array_contains(actSlots, _def.act)) return "Already equipped.";
+		for (var s = 0; s < array_length(actItems); s++)
+			if (actItems[s] == undefined) { act_slot_set(s, _it); invItems[_i] = undefined; return ""; }
+		return "All act slots are full.";
+	}
+
+	var _key = equip_key_for(_def);
+	if (_key != "")
+	{
+		var _old = equipment[$ _key];
+		equipment[$ _key] = _it;
+		invItems[_i] = _old;       // the swapped-out piece takes this tile
+		stats_recalc();
+		return "";
+	}
+
+	if (_def[$ "use"] != undefined)
+	{
+		if (method(self, _def.use)(_it)) invItems[_i] = undefined;
+		return "";
+	}
+	return "Can't use that.";
+}
+
+function inv_unequip(_kind, _idx)
+{
+	var _held = (_kind == "act") ? actItems[_idx] : equipment[$ _idx];
+	if (_held == undefined) return "";
+	var _free = inv_free_slot();
+	if (_free < 0) return "Inventory full.";
+
+	invItems[_free] = _held;
+	if (_kind == "act") act_slot_set(_idx, undefined);
+	else { equipment[$ _idx] = undefined; stats_recalc(); }
+	return "";
+}
+
+// Swings use the weapon's first damage type (fists = bludgeoning). Extend here for multi-type weapons.
+function attack_types()
+{
+	var _w = equipment.weapon;
+	if (_w == undefined) return [DamageType.BLUDGEONING];
+	var _t = item_types(item_def(_w));
+	return (array_length(_t) > 0) ? _t : [DamageType.BLUDGEONING];
+}
+function attack_type() { return attack_types()[0]; }
+
+function attack_power()
+{
+	var _t = attack_type();
+	return (stat_get(global.damageTypes[_t].atk) + typeBonus[_t]) * outMult;
+}
+
+function act_power(_mult = 1)
+{
+	return stat_get(global.damageTypes[actCur.type].atk) * actCur.power * _mult * outMult;
+}
+
+// ---- Starting gear (fixed rolls) and a few random items so the book isn't empty. Remove the repeat when done testing.
+equipment.weapon = item_make("rusty_sword", "common", "normal", []);
+equipment.body   = item_make("chain_mail", "common", "normal", []);
+act_slot_set(0, item_make(act_item_id(PLAYER_ACT.LIGHTNING_FLASH), "common"));
+act_slot_set(1, item_make(act_item_id(PLAYER_ACT.FIREBOLT), "common"));
+act_slot_set(2, item_make(act_item_id(PLAYER_ACT.FIREBALL), "common"));
+act_slot_set(3, item_make(act_item_id(PLAYER_ACT.X_SLASH), "common"));
+act_slot_set(4, item_make(act_item_id(PLAYER_ACT.SLAM), "common"));
+act_slot_set(5, item_make(act_item_id(PLAYER_ACT.VAMPIRISM), "common"));
+stats_recalc();
+repeat (8) inv_add(item_roll());
 
 function act_unequip(_slot) { return act_equip(_slot, PLAYER_ACT.NONE); }
 function act_learn(_act) { actsKnown[_act] = true; }
@@ -182,11 +291,6 @@ function state_act_run()
 }
 
 // ---- Helpers acts use
-function act_power(_mult = 1)
-{
-	return stat_get(global.damageTypes[actCur.type].atk) * actCur.power * _mult * outMult;
-}
-
 function act_gravity(_scale = 1)
 {
 	if (onGround) { if (vSpd > 0) vSpd = 0; }
@@ -337,12 +441,6 @@ function act_cast_fire()
 }
 
 // ---- Test loadout (swap freely; the ACT menu cycles whatever is equipped)
-act_equip(0, PLAYER_ACT.LIGHTNING_FLASH);
-act_equip(1, PLAYER_ACT.FIREBOLT);
-act_equip(2, PLAYER_ACT.FIREBALL);
-act_equip(3, PLAYER_ACT.X_SLASH);
-act_equip(4, PLAYER_ACT.SLAM);
-act_equip(5, PLAYER_ACT.VAMPIRISM);
 
 function move_and_collide_pixels()
 {
@@ -491,49 +589,6 @@ function kill()
 	if (state == PlayerState.DEAD) return;
 	global.timeScaleTarget = 1;   // don't leave the world slowed if killed in the ACT menu
 	state_change(PlayerState.DEAD);
-}
-
-function stats_recalc()
-{
-	stats = {};
-	var _names = variable_struct_get_names(baseStats);
-	for (var i = 0; i < array_length(_names); i++) stats[$ _names[i]] = baseStats[$ _names[i]];
-
-	for (var t = 0; t < array_length(affinity); t++) affinity[t] = 1;
-
-	var _slots = variable_struct_get_names(equipment);
-	for (var s = 0; s < array_length(_slots); s++)
-	{
-		var _it = equipment[$ _slots[s]];
-		if (_it == undefined) continue;
-
-		var _bonus = _it[$ "bonus"] ?? {};
-		var _bn = variable_struct_get_names(_bonus);
-		for (var b = 0; b < array_length(_bn); b++)
-			stats[$ _bn[b]] = (stats[$ _bn[b]] ?? 0) + _bonus[$ _bn[b]];
-
-		var _res = _it[$ "resist"] ?? [];
-		for (var r = 0; r < array_length(_res); r++)
-			affinity[_res[r][0]] = max(0, affinity[_res[r][0]] + _res[r][1]);
-	}
-}
-
-// Call any time during gameplay. Pass undefined to unequip.
-function equip(_slot, _item)
-{
-	equipment[$ _slot] = _item;
-	stats_recalc();
-}
-
-function attack_type()
-{
-	var _w = equipment.weapon;
-	return (_w != undefined) ? _w.type : DamageType.BLUDGEONING;   // fists
-}
-
-function attack_power()
-{
-	return stat_get(global.damageTypes[attack_type()].atk) * outMult;
 }
 
 // Same pipeline as the enemy's receive_hit
@@ -973,6 +1028,3 @@ function draw_act_hud()
 	draw_set_halign(fa_left);
 	draw_set_font(fnt_default);
 }
-
-equip("weapon", global.items.rusty_sword);
-equip("armor", global.items.chain_mail);

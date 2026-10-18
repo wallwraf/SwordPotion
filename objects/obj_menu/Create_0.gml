@@ -322,15 +322,15 @@ function draw_menu_bg(_W, _H, _u)
 	}
 
 	// Glints: four-point twinkles
-	for (var i = 0; i < array_length(glints); i++)
-	{
-		var _g = glints[i];
-		var _px = _g.x * _W, _py = _g.y * _H;
-		var _sz = sin(_g.life * pi) * _g.s * _u;
-		if (_sz < 0.5 || _px > clipX0 + clipK * _py) continue;
-		draw_poly([_px - _sz, _py, _px, _py - _sz * 0.16, _px + _sz, _py, _px, _py + _sz * 0.16], c_white, 0.9, false);
-		draw_poly([_px, _py - _sz, _px + _sz * 0.16, _py, _px, _py + _sz, _px - _sz * 0.16, _py], c_white, 0.9, false);
-	}
+	//for (var i = 0; i < array_length(glints); i++)
+	//{
+	//	var _g = glints[i];
+	//	var _px = _g.x * _W, _py = _g.y * _H;
+	//	var _sz = sin(_g.life * pi) * _g.s * _u;
+	//	if (_sz < 0.5 || _px > clipX0 + clipK * _py) continue;
+	//	draw_poly([_px - _sz, _py, _px, _py - _sz * 0.16, _px + _sz, _py, _px, _py + _sz * 0.16], c_white, 0.9, false);
+	//	draw_poly([_px, _py - _sz, _px + _sz * 0.16, _py, _px, _py + _sz, _px - _sz * 0.16, _py], c_white, 0.9, false);
+	//}
 }
 
 // Thick frame made of four slanted bars

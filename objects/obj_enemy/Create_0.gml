@@ -21,7 +21,22 @@ cfg = {
 	atkKnock: 3,
 	hurtTime: 15, iframes: 8, knockResist: 0, superArmor: false, minDamage: 1,
 	deathHold: SEC,
-	deathFade: SEC * 0.5
+	deathFade: SEC * 0.5,
+	dropChance: 0.35,        // chance of any drop at all
+	dropPool: undefined,     // undefined = every droppable item, or an array of item ids
+	dropLuck: 0              // pushes drops toward higher rarities (bosses)
+}
+
+dropped = false;
+
+function drop_loot()
+{
+	if (dropped) return;
+	dropped = true;
+	if (random(1) >= cfg.dropChance) return;
+	var _item = item_roll(cfg.dropPool, cfg.dropLuck);
+	if (_item == undefined) return;
+	instance_create_depth(x, (bbox_top + bbox_bottom) / 2, depth - 1, obj_item_drop, { item: _item });
 }
 
 spr = {};
@@ -203,7 +218,7 @@ function kill()
 	stats.hp = 0;
 	stunTimer = 0;
 	if (state == EnemyState.DEAD) return;
-	if (!state_change(EnemyState.DEAD)) { on_death(); instance_destroy(); }
+	if (!state_change(EnemyState.DEAD)) { on_death(); drop_loot(); instance_destroy(); }
 }
 
 // Hooks: reassign in a child, e.g. on_death = function() { ...drops... };

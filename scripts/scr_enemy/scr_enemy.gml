@@ -161,13 +161,7 @@ function enemy_default_state(_id)
 		
 		case EnemyState.DEAD:
 			return {
-				enter: function()
-				{
-					anim("dead");
-					deadTimer = 0;
-					deadFrozen = false;
-					on_death();
-				},
+				enter: function() { anim("dead"); on_death(); drop_loot(); },
 				step: function()
 				{
 					slow_down();

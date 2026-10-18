@@ -10,13 +10,15 @@ global.bindsDefault = {
 	jump: [vk_up, ord("W")],
 	run: [vk_shift, ord("X")],
 	attack: [vk_enter, ord("Z")],
-	action: [vk_control, ord("C")]
+	action: [vk_control, ord("C")],
+	inventory: [vk_tab, ord("V")]
 }
 
 global.settings = json_parse(json_stringify(global.settingsDefault));
 global.binds = json_parse(json_stringify(global.bindsDefault));
 
 global.hitbox = false;
+global.paused = false;
 
 global.resPercents = [0.25, 0.5, 0.75, 1];
 global.languages = ["English"];

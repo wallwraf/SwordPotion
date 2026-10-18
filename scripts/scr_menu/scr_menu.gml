@@ -26,7 +26,8 @@ function controls_items()
 		["jump",   "Jump",     "Hold for a higher jump."],
 		["run",    "Run",      "Hold to run. In the Action menu, cycles acts backward."],
 		["attack", "Attack",   "Swing your weapon. In the Action menu, cycles acts forward."],
-		["action", "Act Menu", "Hold to open the Action menu, release to perform the act."]
+		["action", "Act Menu", "Hold to open the Action menu, release to perform the act."],
+		["inventory", "Inventory", "Open and close the inventory."]
 	];
 	var _items = [];
 	for (var i = 0; i < array_length(_acts); i++) array_push(_items, mn_rebind(_acts[i][1], _acts[i][0], _acts[i][2]));

@@ -1,3 +1,5 @@
+if (global.paused) exit;
+
 effects_update();
 if (confused) { var _t = kLeft; kLeft = kRight; kRight = _t; }
 

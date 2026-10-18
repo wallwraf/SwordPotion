@@ -232,7 +232,7 @@ global.acts[PLAYER_ACT.ICE_SHARD] = {
 
 // ---------------- Fire ----------------
 global.acts[PLAYER_ACT.FIREBOLT] = {
-	name: "Firebolt", desc: "A fast bolt of fire. Minor damage.",
+	name: "Firebolt", desc: "A fast bolt of fire. Minor damage.", icon: spr_actFirebolt,
 	type: DamageType.FIRE, power: 0.8, needsTarget: true, col: make_colour_rgb(255, 140, 40),
 	cast: { kind: "proj", windup: 6, recover: 8, spd: 9, radius: 4, grav: 0, homing: 0, splash: 0, knock: 1 }
 };
