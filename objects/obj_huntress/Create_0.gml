@@ -6,7 +6,7 @@ spr = { idle: spr_huntressIdle, walk: spr_huntressWalk, dash: spr_huntressDash, 
 mask_index = spr_huntressIdle;
 
 // Stats
-stats.hp = 50; stats.hpMax = 50; stats.atk = 6;
+stats.hp = 50; stats.hpMax = 50; stats.atk = 16;
 state_use_all();
 cfg.attackState = ES_HUNTRESSDASH;
 cfg.attackRange = 100;

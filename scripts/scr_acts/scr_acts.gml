@@ -40,7 +40,7 @@ global.acts = array_create(PLAYER_ACT.COUNT, undefined);
 
 // ---------------- Bludgeoning ----------------
 global.acts[PLAYER_ACT.SLAM] = {
-	name: "Slam", desc: "Leap, hang in the air, then crash down. A shockwave rolls out left and right.",
+	name: "Slam", desc: "Leap, hang in the air, then crash down. A shockwave rolls out left and right.", icon: spr_actSlam,
 	type: DamageType.BLUDGEONING, power: 2.0, needsTarget: false, col: make_colour_rgb(255, 170, 60),
 	enter: function()
 	{
@@ -84,7 +84,7 @@ global.acts[PLAYER_ACT.SLAM] = {
 
 // ---------------- Piercing ----------------
 global.acts[PLAYER_ACT.PUNCTURE] = {
-	name: "Puncture", desc: "Thrust through enemies in the direction you're holding.",
+	name: "Puncture", desc: "Thrust through enemies in the direction you're holding.", icon: spr_actPuncture,
 	type: DamageType.PIERCING, power: 1.7, needsTarget: false, col: make_colour_rgb(220, 225, 235),
 	enter: function()
 	{
@@ -126,7 +126,7 @@ global.acts[PLAYER_ACT.PUNCTURE] = {
 
 // ---------------- Slashing ----------------
 global.acts[PLAYER_ACT.X_SLASH] = {
-	name: "X Slash", desc: "Two heavy downward slashes in an X, stepping forward with each.",
+	name: "X Slash", desc: "Two heavy downward slashes in an X, stepping forward with each.", icon: spr_actXSlash,
 	type: DamageType.SLASHING, power: 1.5, needsTarget: false, col: make_colour_rgb(235, 235, 245),
 	enter: function() { hSpd = 0; sprite_index = spr.attack; image_index = 0; actData.n = 0; },
 	step: function()
@@ -172,7 +172,7 @@ global.acts[PLAYER_ACT.X_SLASH] = {
 };
 
 global.acts[PLAYER_ACT.ONSLAUGHT] = {
-	name: "Onslaught", desc: "Dash forward, then carve a curved slash all the way around you.",
+	name: "Onslaught", desc: "Dash forward, then carve a curved slash all the way around you.", icon: spr_actOnslaught,
 	type: DamageType.SLASHING, power: 1.8, needsTarget: false, col: make_colour_rgb(235, 235, 245),
 	enter: function()
 	{
@@ -218,14 +218,14 @@ global.acts[PLAYER_ACT.ONSLAUGHT] = {
 
 // ---------------- Acid ----------------
 global.acts[PLAYER_ACT.ACID_LOB] = {
-	name: "Acid Lob", desc: "Lob a glob of acid that bursts on impact.",
+	name: "Acid Lob", desc: "Lob a glob of acid that bursts on impact.", icon: spr_actAcidLob,
 	type: DamageType.ACID, power: 0.9, needsTarget: true, col: make_colour_rgb(190, 230, 60),
 	cast: { kind: "proj", windup: 12, recover: 12, spd: 4, radius: 6, grav: 0.12, homing: 0, splash: 22, knock: 1 }
 };
 
 // ---------------- Cold ----------------
 global.acts[PLAYER_ACT.ICE_SHARD] = {
-	name: "Ice Shard", desc: "Launch a sharp icicle that chills what it hits.",
+	name: "Ice Shard", desc: "Launch a sharp icicle that chills what it hits.", icon: spr_actIceShard,
 	type: DamageType.COLD, power: 1.2, needsTarget: true, col: make_colour_rgb(120, 190, 255),
 	cast: { kind: "proj", windup: 10, recover: 10, spd: 7, radius: 5, grav: 0, homing: 0, splash: 0, knock: 1 }
 };
@@ -238,21 +238,21 @@ global.acts[PLAYER_ACT.FIREBOLT] = {
 };
 
 global.acts[PLAYER_ACT.FIREBALL] = {
-	name: "Fireball", desc: "A slow, heavy fireball that bends toward its target and explodes.",
+	name: "Fireball", desc: "A slow, heavy fireball that bends toward its target and explodes.", icon: spr_actFireball,
 	type: DamageType.FIRE, power: 2.6, needsTarget: true, col: make_colour_rgb(255, 110, 30),
 	cast: { kind: "proj", windup: 22, recover: 16, spd: 3.5, radius: 9, grav: 0, homing: 1.5, splash: 28, knock: 2 }
 };
 
 // ---------------- Force ----------------
 global.acts[PLAYER_ACT.FORCE_PUSH] = {
-	name: "Force Push", desc: "A short-range blast that hurls enemies away.",
+	name: "Force Push", desc: "A short-range blast that hurls enemies away.", icon: spr_actForcePush,
 	type: DamageType.FORCE, power: 0.8, needsTarget: false, col: make_colour_rgb(200, 215, 255),
 	cast: { kind: "burst", windup: 10, recover: 12, shape: "rect", w: 56, r: 0, knock: 2, shake: 3 }
 };
 
 // ---------------- Lightning ----------------
 global.acts[PLAYER_ACT.LIGHTNING_FLASH] = {
-	name: "Lightning Flash", desc: "Blink to the target at lightning speed, zapping anything in the way.",
+	name: "Lightning Flash", desc: "Blink to the target at lightning speed, zapping anything in the way.", icon: spr_actLightningFlash,
 	type: DamageType.LIGHTNING, power: 1.2, needsTarget: true, col: make_colour_rgb(255, 240, 90),
 	enter: function()
 	{
@@ -309,7 +309,7 @@ global.acts[PLAYER_ACT.LIGHTNING_FLASH] = {
 
 // ---------------- Necrotic ----------------
 global.acts[PLAYER_ACT.VAMPIRISM] = {
-	name: "Vampirism", desc: "Drain a target with necrotic energy and heal for 25% of the damage dealt.",
+	name: "Vampirism", desc: "Drain a target with necrotic energy and heal for 25% of the damage dealt.", icon: spr_actVampirism,
 	type: DamageType.NECROTIC, power: 1.5, needsTarget: true, col: make_colour_rgb(150, 60, 190),
 	cast: { kind: "instant", windup: 16, recover: 14, knock: 0, sky: false },
 	onHit: function(_dealt)
@@ -323,28 +323,28 @@ global.acts[PLAYER_ACT.VAMPIRISM] = {
 
 // ---------------- Poison ----------------
 global.acts[PLAYER_ACT.POISON_DART] = {
-	name: "Poison Dart", desc: "A very fast, light dart that leaves poison behind.",
+	name: "Poison Dart", desc: "A very fast, light dart that leaves poison behind.", icon: spr_actPoisonDart,
 	type: DamageType.POISON, power: 0.5, needsTarget: true, col: make_colour_rgb(80, 190, 110),
 	cast: { kind: "proj", windup: 6, recover: 6, spd: 11, radius: 3, grav: 0, homing: 0, splash: 0, knock: 0 }
 };
 
 // ---------------- Psychic ----------------
 global.acts[PLAYER_ACT.MIND_SPIKE] = {
-	name: "Mind Spike", desc: "A spike of thought that always hits and leaves the target confused.",
+	name: "Mind Spike", desc: "A spike of thought that always hits and leaves the target confused.", icon: spr_actMindSpike,
 	type: DamageType.PSYCHIC, power: 1.1, needsTarget: true, col: make_colour_rgb(240, 110, 200),
 	cast: { kind: "instant", windup: 14, recover: 12, knock: 0, sky: false }
 };
 
 // ---------------- Radiant ----------------
 global.acts[PLAYER_ACT.SMITE] = {
-	name: "Smite", desc: "A pillar of light falls on the target and brands it, so it takes extra damage.",
+	name: "Smite", desc: "A pillar of light falls on the target and brands it, so it takes extra damage.", icon: spr_actSmite,
 	type: DamageType.RADIANT, power: 1.6, needsTarget: true, col: make_colour_rgb(255, 225, 110),
 	cast: { kind: "instant", windup: 24, recover: 14, knock: 0, sky: true }
 };
 
 // ---------------- Thunder ----------------
 global.acts[PLAYER_ACT.THUNDERCLAP] = {
-	name: "Thunderclap", desc: "A concussive burst around you that staggers everything nearby.",
+	name: "Thunderclap", desc: "A concussive burst around you that staggers everything nearby.", icon: spr_actThunderclap,
 	type: DamageType.THUNDER, power: 1.0, needsTarget: false, col: make_colour_rgb(190, 180, 255),
 	cast: { kind: "burst", windup: 16, recover: 14, shape: "circle", w: 0, r: 56, knock: 2, shake: 6 }
 };

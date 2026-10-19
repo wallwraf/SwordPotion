@@ -44,23 +44,23 @@ global.damageNames = ["Bludgeoning", "Piercing", "Slashing", "Acid", "Cold", "Fi
 // Optional: rarity (force one), craft (true/false), use (consumables).
 global.itemDefs = {
 	rusty_sword:     { name: "Rusty Sword",     desc: "Pitted and chipped, but it still cuts.",         slot: "weapon", types: [DamageType.SLASHING],    stats: { atk: 4 }, icon: spr_rustySword, weight: 10 },
-	iron_mace:       { name: "Iron Mace",       desc: "Heavy enough to ring a few bells.",              slot: "weapon", types: [DamageType.BLUDGEONING], stats: { atk: 6 }, icon: -1, weight: 8 },
-	hunting_spear:   { name: "Hunting Spear",   desc: "Built for reaching what bites back.",            slot: "weapon", types: [DamageType.PIERCING],    stats: { atk: 5 }, icon: -1, weight: 8 },
-	ember_staff:     { name: "Ember Staff",     desc: "Warm to the touch, and getting warmer.",         slot: "weapon", types: [DamageType.FIRE],        stats: { mag: 6 }, icon: -1, weight: 5 },
-	frost_wand:      { name: "Frost Wand",      desc: "Frost creeps up the handle when you grip it.",   slot: "weapon", types: [DamageType.COLD],        stats: { mag: 5 }, icon: -1, weight: 5 },
+	iron_mace:       { name: "Iron Mace",       desc: "Heavy enough to ring a few bells.",              slot: "weapon", types: [DamageType.BLUDGEONING], stats: { atk: 6 }, icon: spr_ironMace, weight: 8 },
+	hunting_spear:   { name: "Hunting Spear",   desc: "Built for reaching what bites back.",            slot: "weapon", types: [DamageType.PIERCING],    stats: { atk: 5 }, icon: spr_huntingSpear, weight: 8 },
+	ember_staff:     { name: "Ember Staff",     desc: "Warm to the touch, and getting warmer.",         slot: "weapon", types: [DamageType.FIRE],        stats: { mag: 6 }, icon: spr_emberStaff, weight: 5 },
+	frost_wand:      { name: "Frost Wand",      desc: "Frost creeps up the handle when you grip it.",   slot: "weapon", types: [DamageType.COLD],        stats: { mag: 5 }, icon: spr_frostWand, weight: 5 },
 	
-	leather_cap:     { name: "Leather Cap",     desc: "Better than nothing, barely.",                   slot: "helmet", stats: { def: 1 }, icon: -1, weight: 10 },
-	iron_helm:       { name: "Iron Helm",       desc: "Dented in all the right places.",                slot: "helmet", stats: { def: 2 }, icon: -1, weight: 6 },
+	leather_cap:     { name: "Leather Cap",     desc: "Better than nothing, barely.",                   slot: "helmet", stats: { def: 1 }, icon: spr_leatherCap, weight: 10 },
+	iron_helm:       { name: "Iron Helm",       desc: "Dented in all the right places.",                slot: "helmet", stats: { def: 2 }, icon: spr_ironHelm, weight: 6 },
 	
-	chain_mail:      { name: "Chain Mail",      desc: "Links of iron that turn aside blades.",          slot: "body",   stats: { def: 4 }, resist: [[DamageType.SLASHING, -0.2]], icon: -1, weight: 6 },
-	frost_cloak:     { name: "Frost Cloak",     desc: "Shrugs off the cold, and fears the flame.",      slot: "body",   stats: { def: 1, res: 3 }, resist: [[DamageType.COLD, -0.5], [DamageType.FIRE, 0.25]], icon: -1, weight: 4 },
+	chain_mail:      { name: "Chain Mail",      desc: "Links of iron that turn aside blades.",          slot: "body",   stats: { def: 4 }, resist: [[DamageType.SLASHING, -0.2]], icon: spr_chainMail, weight: 6 },
+	frost_cloak:     { name: "Frost Cloak",     desc: "Shrugs off the cold, and fears the flame.",      slot: "body",   stats: { def: 1, res: 3 }, resist: [[DamageType.COLD, -0.5], [DamageType.FIRE, 0.25]], icon: spr_frostCloak, weight: 4 },
 	
-	leather_greaves: { name: "Leather Greaves", desc: "Soft soles, quiet steps.",                       slot: "legs",   stats: { def: 1 }, icon: -1, weight: 10 },
-	iron_greaves:    { name: "Iron Greaves",    desc: "Every step rings out.",                          slot: "legs",   stats: { def: 2 }, icon: -1, weight: 6 },
+	leather_greaves: { name: "Leather Greaves", desc: "Soft soles, quiet steps.",                       slot: "legs",   stats: { def: 1 }, icon: spr_leatherGreaves, weight: 10 },
+	iron_greaves:    { name: "Iron Greaves",    desc: "Every step rings out.",                          slot: "legs",   stats: { def: 2 }, icon: spr_ironGreaves, weight: 6 },
 	
-	amber_pendant:   { name: "Amber Pendant",   desc: "Something old sleeps inside the amber.",         slot: "accessory", stats: { res: 2 }, icon: -1, weight: 6 },
-	iron_band:       { name: "Iron Band",       desc: "A plain ring, heavier than it looks.",           slot: "accessory", stats: { def: 1 }, icon: -1, weight: 8 },
-	ember_ring:      { name: "Ember Ring",      desc: "A coal that never goes out.",                    slot: "accessory", types: [DamageType.FIRE], stats: { mag: 1 }, icon: -1, weight: 4 }
+	amber_pendant:   { name: "Amber Pendant",   desc: "Something old sleeps inside the amber.",         slot: "accessory", stats: { res: 2 }, icon: spr_amberPendant, weight: 6 },
+	iron_band:       { name: "Iron Band",       desc: "A plain ring, heavier than it looks.",           slot: "accessory", stats: { def: 1 }, icon: spr_ironBand, weight: 8 },
+	ember_ring:      { name: "Ember Ring",      desc: "A coal that never goes out.",                    slot: "accessory", types: [DamageType.FIRE], stats: { mag: 1 }, icon: spr_emberRing, weight: 4 }
 };
 
 global.missingDef = { name: "???", desc: "This item no longer exists.", slot: "misc", types: [], stats: {}, icon: spr_missingDef, weight: 0 };
