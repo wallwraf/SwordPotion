@@ -6,21 +6,33 @@ var _H  = display_get_gui_height();
 var _u  = _H / 270;
 var _ts = _u * textScale;
 var _lean = dtan(18);
-var _pwFull = _W * panelCur;   // final width of the pause panel
+var _pwFull = _W * panelCur;       // the panel's current, animated width
+var _pwLay  = _W * panelTarget;    // the width buttons are laid out for
+var _e = 1 - power(1 - openAnim, 3);          // the open/close ease
+var _outS = clamp(openAnim * 2.5, 0, 1);      // buttons and title shrink away while closing
 
-draw_set_font(fnt_damage);
-
-// Pause: frozen game, dimmed. The panel is drawn over the left side.
+draw_set_font(fnt_menu);
 if (ingame)
 {
-	if (sprite_exists(bg)) draw_sprite_stretched(bg, 0, 0, 0, _W, _H);
+	var _pw = _pwFull * _e;
+
+	draw_set_colour(c_black);
+	draw_rectangle(0, 0, _W, _H, false);
+
+	// Zoom the frozen game onto the player: they end up midway between the panel's edge and the screen's right edge
+	if (sprite_exists(bg))
+	{
+		var _Z  = lerp(1, pauseZoom, _e);
+		var _tx = lerp(zoomPx, (_pw + _W) / 2, _e);
+		var _ty = lerp(zoomPy, _H * 0.5, _e);
+		draw_sprite_ext(bg, 0, _tx - zoomPx * _Z, _ty - zoomPy * _Z,
+			_Z * _W / sprite_get_width(bg), _Z * _H / sprite_get_height(bg), 0, c_white, 1);
+	}
 	draw_set_colour(c_black);
 	draw_set_alpha(0.6 * openAnim);
 	draw_rectangle(0, 0, _W, _H, false);
 	draw_set_alpha(1);
 
-	// The edge leans the way the buttons cascade: narrow at the top, wide at the bottom
-	var _pw = _pwFull * (1 - power(1 - openAnim, 3));
 	clipX0 = _pw - _lean * _H / 2;
 	clipK = _lean;
 }
@@ -56,10 +68,10 @@ var _x0 = ingame ? 26 * _u : _W * 0.09;
 
 cOx = _x0 - 6 * _u;
 cBw = 200 * _u;
-cS = ease_out_back(clamp((pageAge + 10) / 16, 0, 1));
+cS = ease_out_back(clamp((pageAge + 10) / 16, 0, 1)) * _outS;
 
 var _tw0 = string_width(_title) * _ts * _tsc;
-var _maxTw = (ingame ? edge_at(_pwFull, _H * 0.18, _H) : _W) - cOx - 28 * _u;
+var _maxTw = (ingame ? edge_at(_pwLay, _H * 0.18, _H) : _W) - cOx - 28 * _u;
 if (_tw0 > _maxTw) _tsc *= _maxTw / _tw0;
 
 var _tsz1 = _ts * _tsc;                       // title scale before the pop-in
@@ -73,12 +85,14 @@ if (cS > 0.01)
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
 	draw_set_colour(merge_colour(bgCol, c_black, 0.7));
+	draw_set_font(fnt_damage);
 	draw_text_transformed(bpx(0, 0) + 3 * _u, bpy(0, 0) + 4 * _u, _title, _tsz, _tsz, menuAngle);
 	draw_set_colour(c_white);
 	draw_text_transformed(bpx(0, 0), bpy(0, 0), _title, _tsz, _tsz, menuAngle);
 	var _uv = _th * 0.55;
 	bquad(-4 * _u, _uv, _tw + 30 * _u, _uv + 4 * _u, merge_colour(bgCol, c_black, 0.7), 1, 3 * _u, 4 * _u);
 	bquad(-4 * _u, _uv, _tw + 30 * _u, _uv + 4 * _u, c_white, 1);
+	draw_set_font(fnt_menu);
 }
 
 // ---- Layout
@@ -92,7 +106,7 @@ var _dx = 0;
 if (ingame)
 {
 	// The top row is the tightest spot, since the edge leans outward going down
-	var _room = edge_at(_pwFull, _y0 - _bh, _H) - _x0 - 22 * _u;
+	var _room = edge_at(_pwLay, _y0 - _bh, _H) - _x0 - 22 * _u;
 	_bw = max(80 * _u, min(_want, _room));
 	_dx = min(24 * _u, _lean * _dy);   // the cascade follows the panel's edge
 }
@@ -115,7 +129,7 @@ for (var pass = 0; pass < 2; pass++)   // selected button last, so it overlaps i
 
 		var _s  = sel[i];
 		var _on = node_enabled(_row);
-		cS  = ease_out_back(_p) * lerp(1, 1.14, _s);
+		cS  = ease_out_back(_p) * lerp(1, 1.14, _s) * _outS;
 		cOx = _x0 + i * _dx;
 		cOy = _y0 + i * _dy;
 		cBw = _bw;

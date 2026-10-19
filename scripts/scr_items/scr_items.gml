@@ -80,7 +80,7 @@ function items_init()
 		if (_act == undefined) continue;
 		global.itemDefs[$ act_item_id(a)] = {
 			name: "Tome of " + _act.name, desc: _act.desc, slot: "act", act: a,
-			types: [_act.type], stats: {}, icon: -1, weight: 3, craft: false
+			types: [_act.type], stats: {}, icon: _act[$ "icon"] ?? -1, weight: 3, craft: false
 		};
 	}
 }
@@ -294,18 +294,18 @@ function item_tooltip(_it)
 	var _bad  = make_colour_rgb(235, 70, 70);
 	var _L = [];
 
-	array_push(_L, { text: item_name(_it), col: item_col(_it), size: 1.2 });
-	array_push(_L, { text: ((_rar != undefined) ? _rar.name + " " : "") + (global.slotNames[$ _def.slot] ?? "Item"), col: item_col(_it), size: 0.85 });
+	array_push(_L, { text: item_name(_it), col: item_col(_it), size: 1.2, font: "tipName" });
+	array_push(_L, { text: ((_rar != undefined) ? _rar.name + " " : "") + (global.slotNames[$ _def.slot] ?? "Item"), col: item_col(_it), size: 0.85, font: "tipSub" });
 
 	var _ty = item_types(_def);
 	if (array_length(_ty) > 0)
 	{
 		var _s = "";
 		for (var i = 0; i < array_length(_ty); i++) _s += ((i > 0) ? " / " : "") + global.damageNames[_ty[i]];
-		array_push(_L, { text: _s, col: type_col(_ty[0]), size: 0.85 });
+		array_push(_L, { text: _s, col: type_col(_ty[0]), size: 0.85, font: "tipSub" });
 	}
 
-	array_push(_L, { text: _def.desc, col: make_colour_rgb(200, 200, 205), size: 0.85, wrap: true, gap: 4 });
+	array_push(_L, { text: _def.desc, col: make_colour_rgb(200, 200, 205), size: 0.85, font: "tipDesc", gap: 4 });
 
 	var _st = item_stats(_it);
 	var _sn = variable_struct_get_names(_st);
@@ -313,22 +313,22 @@ function item_tooltip(_it)
 	{
 		var _v = _st[$ _sn[i]];
 		if (_v == 0) continue;
-		array_push(_L, { text: ((_v > 0) ? "+" : "") + string(_v) + " " + string_upper(_sn[i]), col: (_v > 0) ? _good : _bad, size: 0.95 });
+		array_push(_L, { text: ((_v > 0) ? "+" : "") + string(_v) + " " + string_upper(_sn[i]), col: (_v > 0) ? _good : _bad, size: 0.95, font: "tipStat" });
 	}
 
 	if (_cr != undefined && _cr.name != "")
-		array_push(_L, { text: _cr.name + " craftsmanship (" + ((_cr.bonus > 0) ? "+" : "") + string(_cr.bonus) + ")", col: (_cr.bonus >= 0) ? _good : _bad, size: 0.8 });
+		array_push(_L, { text: _cr.name + " craftsmanship (" + ((_cr.bonus > 0) ? "+" : "") + string(_cr.bonus) + ")", col: (_cr.bonus >= 0) ? _good : _bad, size: 0.8, font: "tipBonus" });
 
 	for (var b = 0; b < array_length(_it.bonuses); b++)
 	{
 		var _bn = _it.bonuses[b];
-		array_push(_L, { text: ((_bn[1] > 0) ? "+" : "") + string(_bn[1]) + " " + global.damageNames[_bn[0]] + " damage", col: (_bn[1] > 0) ? _good : _bad, size: 0.9 });
+		array_push(_L, { text: ((_bn[1] > 0) ? "+" : "") + string(_bn[1]) + " " + global.damageNames[_bn[0]] + " damage", col: (_bn[1] > 0) ? _good : _bad, size: 0.9, font: "tipBonus" });
 	}
 
 	if (_def.slot == "act")
 	{
 		var _a = global.acts[_def.act];
-		array_push(_L, { text: "Power x" + string(_a.power) + (_a.needsTarget ? "   Needs a target" : ""), col: make_colour_rgb(200, 200, 205), size: 0.85 });
+		array_push(_L, { text: "Power x" + string(_a.power) + (_a.needsTarget ? "   Needs a target" : ""), col: make_colour_rgb(200, 200, 205), size: 0.85, font: "tipStat" });
 	}
 	return _L;
 }

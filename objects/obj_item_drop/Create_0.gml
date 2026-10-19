@@ -8,4 +8,4 @@ msgCd = 0;
 bob = random(6.28);
 col = item_col(item);
 
-function solid_at(_x, _y) { return collision_rectangle(_x - 6, _y - 12, _x + 6, _y, obj_col, false, true) != noone; }
+function solid_at(_x, _y) { return collision_rectangle(_x - 6, _y - 12, _x + 6, _y, obj_col, true, true) != noone; }

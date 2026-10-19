@@ -10,6 +10,10 @@ if (capture)
 	slideT = 0;
 	frame = 0;
 	focus = 0;
+	onList = true;
+	listSel = 0;
+	listScroll = 0;
+	tileFocus = 0;
 	msg = "";
 	msgT = 0;
 	io_clear();

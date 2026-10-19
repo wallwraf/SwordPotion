@@ -156,7 +156,7 @@ function sees_target()
 	if (confused) return false;
 	if (!instance_exists(target)) return false;
 	if (point_distance(x, y, target.x, target.y) > cfg.sightRange) return false;
-	if (cfg.needLineOfSight && collision_line(x, y, target.x, target.y, obj_col, false, true) != noone) return false;
+	if (cfg.needLineOfSight && collision_line(x, y, target.x, target.y, obj_col, true, true) != noone) return false;
 	return true;
 }
 
@@ -244,11 +244,10 @@ function enemy_move()
 	hSpdRem = _h - _mx;
 	vSpdRem = _v - _my;
 
-	repeat (abs(_mx))
-	{
-		if (!place_meeting(x + sign(_mx), y, obj_col)) x += sign(_mx);
-		else { hSpd = 0; hSpdRem = 0; break; }
-	}
+	var _grounded = !cfg.flying && onGround && vSpd >= 0;
+	if (!move_x_slope(_mx, _grounded)) { hSpd = 0; hSpdRem = 0; }
+	if (_grounded) snap_down(SLOPE_DOWN);
+	
 	repeat (abs(_my))
 	{
 		if (!place_meeting(x, y + sign(_my), obj_col)) y += sign(_my);

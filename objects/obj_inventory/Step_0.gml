@@ -1,4 +1,3 @@
-// ---- Closed: wait for the key
 if (phase == 0)
 {
 	if (!capture && input_pressed("inventory") && instance_exists(obj_player) && obj_player.state != PlayerState.DEAD
@@ -13,17 +12,17 @@ cy = lerp(_off, _H / 2, 1 - power(1 - slideT, 3));
 
 switch (phase)
 {
-	case 1:   // slide up from the bottom
+	case 1:
 		slideT = min(1, slideT + slideSpeed);
 		if (slideT >= 1) phase = 2;
 		break;
 
-	case 2:   // opening: frames 0 -> 3
+	case 2:
 		frame += animSpeed;
-		if (frame >= 3) { frame = 3; phase = 3; }
+		if (frame >= 3) { frame = 3; phase = 3; layout(); }
 		break;
 
-	case 3:   // open
+	case 3:
 		if (msgT > 0) msgT--;
 		layout();
 
@@ -35,14 +34,15 @@ switch (phase)
 		else if (_dy != 0) nav(0, _dy);
 
 		if (input_pressed("attack")) activate_focus();
+		layout();   // pick up scroll and selection changes from this frame
 		break;
 
-	case 4:   // closing: frames 3 -> 0
+	case 4:
 		frame -= animSpeed;
 		if (frame <= 0) { frame = 0; phase = 5; }
 		break;
 
-	case 5:   // slide back down
+	case 5:
 		slideT = max(0, slideT - slideSpeed);
 		if (slideT <= 0) close_finish();
 		break;

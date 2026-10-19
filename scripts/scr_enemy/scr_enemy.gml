@@ -1,6 +1,6 @@
 enum EnemyState { IDLE, ROAM, CHASE, ATTACK, HURT, DEAD, CUSTOM }
 // Per-enemy custom states, numbered from CUSTOM:
-// #macro ES_DASH (EnemyState.CUSTOM + 0)
+#macro ES_HUNTRESSDASH (EnemyState.CUSTOM + 0)
 
 enum DamageType
 {
@@ -93,8 +93,8 @@ function enemy_default_state(_id)
 					facing = roamDir;
 					hSpd = approach(hSpd, roamDir * stat_get("spd"), cfg.accel);
 					
-					var _wall = place_meeting(x + roamDir * 2, y, obj_col);
-					var _ledge = cfg.avoidLedges && onGround && !place_meeting(x + roamDir * 8, y + 4, obj_col);
+					var _wall  = wall_ahead(roamDir);
+					var _ledge = cfg.avoidLedges && onGround && !place_meeting(x + roamDir * 8, y + SLOPE_DOWN + 6, obj_col);
 					if (_wall || _ledge) { roamDir *= -1; return; }
 					
 					if (state_has(EnemyState.CHASE) && sees_target()) { state_change(EnemyState.CHASE); return; }
@@ -112,6 +112,8 @@ function enemy_default_state(_id)
 				step: function()
 				{
 					if (!instance_exists(target)) { state_home(); return; }
+					
+					var _dist = point_distance(x, y, target.x, target.y);
 					if (_dist > cfg.loseRange) { state_home(); return; }
 					
 					var _dx = target.x - x;

@@ -131,7 +131,7 @@ actHoldMin = 20;   // frames you must hold the menu before a no-target act can f
 if (!instance_exists(obj_inventory)) instance_create_depth(0, 0, -100, obj_inventory);
 
 // ---- Inventory and equipment
-invItems  = array_create(inv_capacity(), undefined);   // capacity = the left page's grid
+invItems = [];
 actItems  = array_create(6, undefined);                // act tomes in the six act slots (actSlots holds the acts they teach)
 equipment = { helmet: undefined, body: undefined, legs: undefined, acc1: undefined, acc2: undefined, weapon: undefined };
 typeBonus = array_create(array_length(global.damageTypes), 0);
@@ -155,35 +155,22 @@ function equip_key_for(_def)
 
 function inv_add(_item)
 {
-	for (var i = 0; i < array_length(invItems); i++)
-		if (invItems[i] == undefined) { invItems[i] = _item; return true; }
-	return false;
+	if (_item == undefined || array_length(invItems) >= inv_capacity()) return false;
+	array_push(invItems, _item);
+	return true;
 }
 
-function inv_free_slot()
-{
-	for (var i = 0; i < array_length(invItems); i++) if (invItems[i] == undefined) return i;
-	return -1;
-}
-
-function act_slot_set(_slot, _item)
-{
-	actItems[_slot] = _item;
-	actSlots[_slot] = (_item == undefined) ? PLAYER_ACT.NONE : item_def(_item).act;
-}
-
-// Returns a message for the tooltip ("" = success)
 function inv_activate(_i)
 {
+	if (_i < 0 || _i >= array_length(invItems)) return "";
 	var _it = invItems[_i];
-	if (_it == undefined) return "";
 	var _def = item_def(_it);
 
 	if (_def.slot == "act")
 	{
 		if (array_contains(actSlots, _def.act)) return "Already equipped.";
 		for (var s = 0; s < array_length(actItems); s++)
-			if (actItems[s] == undefined) { act_slot_set(s, _it); invItems[_i] = undefined; return ""; }
+			if (actItems[s] == undefined) { act_slot_set(s, _it); array_delete(invItems, _i, 1); return ""; }
 		return "All act slots are full.";
 	}
 
@@ -192,14 +179,15 @@ function inv_activate(_i)
 	{
 		var _old = equipment[$ _key];
 		equipment[$ _key] = _it;
-		invItems[_i] = _old;       // the swapped-out piece takes this tile
+		if (_old != undefined) invItems[_i] = _old;      // the swapped-out piece takes its place
+		else array_delete(invItems, _i, 1);
 		stats_recalc();
 		return "";
 	}
 
 	if (_def[$ "use"] != undefined)
 	{
-		if (method(self, _def.use)(_it)) invItems[_i] = undefined;
+		if (method(self, _def.use)(_it)) array_delete(invItems, _i, 1);
 		return "";
 	}
 	return "Can't use that.";
@@ -209,13 +197,18 @@ function inv_unequip(_kind, _idx)
 {
 	var _held = (_kind == "act") ? actItems[_idx] : equipment[$ _idx];
 	if (_held == undefined) return "";
-	var _free = inv_free_slot();
-	if (_free < 0) return "Inventory full.";
+	if (array_length(invItems) >= inv_capacity()) return "Inventory full.";
 
-	invItems[_free] = _held;
+	array_push(invItems, _held);
 	if (_kind == "act") act_slot_set(_idx, undefined);
 	else { equipment[$ _idx] = undefined; stats_recalc(); }
 	return "";
+}
+
+function act_slot_set(_slot, _item)
+{
+	actItems[_slot] = _item;
+	actSlots[_slot] = (_item == undefined) ? PLAYER_ACT.NONE : item_def(_item).act;
 }
 
 // Swings use the weapon's first damage type (fists = bludgeoning). Extend here for multi-type weapons.
@@ -440,31 +433,31 @@ function act_cast_fire()
 	}
 }
 
-// ---- Test loadout (swap freely; the ACT menu cycles whatever is equipped)
+
 
 function move_and_collide_pixels()
 {
 	var _h = hSpd * global.timeScale * slowMult + hSpdRem;
 	var _v = vSpd * global.timeScale + vSpdRem;
-	
+
 	var _mx = round(_h);
 	var _my = round(_v);
 	hSpdRem = _h - _mx;
 	vSpdRem = _v - _my;
-	
-	// Horizontal Pixel Collision
-	repeat (abs(_mx))
+
+	var _grounded = onGround && vSpd >= 0;   // never climb while jumping or rising
+
+	// Horizontal: climbs slopes when grounded
+	if (!move_x_slope(_mx, _grounded))
 	{
-		if (!place_meeting(x + sign(_mx), y, obj_col))
-			x += sign(_mx);
-		else
-		{
-			hSpd = 0;
-			hSpdRem = 0;
-			break;
-		}
+		hSpd = 0;
+		hSpdRem = 0;
 	}
-	// Vertical Pixel Collision
+
+	// Stay glued to the ground going downhill
+	if (_grounded) snap_down(SLOPE_DOWN);
+
+	// Vertical (unchanged)
 	repeat (abs(_my))
 	{
 		if (!place_meeting(x, y + sign(_my), obj_col))
@@ -527,12 +520,29 @@ function draw_chevron(_x, _y, _dir, _size, _col, _alpha)
 	var _y1 = _y + lengthdir_y(_size, _back + 45);
 	var _x2 = _x + lengthdir_x(_size, _back - 45);
 	var _y2 = _y + lengthdir_y(_size, _back - 45);
-	
+
+	var _w = 2;   // line width
+	var _o = 1;   // outline thickness all the way around
+
 	draw_set_alpha(_alpha);
+
+	// outline: black lines with round caps, wider by the outline thickness
+	var _ow = _w + _o * 2;
+	draw_set_colour(c_black);
+	draw_line_width(_x1, _y1, _x, _y, _ow);
+	draw_line_width(_x2, _y2, _x, _y, _ow);
+	draw_circle(_x1, _y1, _ow / 2, false);
+	draw_circle(_x2, _y2, _ow / 2, false);
+	draw_circle(_x, _y, _ow / 2, false);
+
+	// the chevron itself, with matching round caps
 	draw_set_colour(_col);
-	draw_line_width(_x1, _y1, _x, _y, 3);
-	draw_line_width(_x2, _y2, _x, _y, 3);
-	draw_circle(_x, _y, 1.5, false);
+	draw_line_width(_x1, _y1, _x, _y, _w);
+	draw_line_width(_x2, _y2, _x, _y, _w);
+	draw_circle(_x1, _y1, _w / 2, false);
+	draw_circle(_x2, _y2, _w / 2, false);
+	draw_circle(_x, _y, _w / 2, false);
+
 	draw_set_alpha(1);
 	draw_set_colour(c_white);
 }
@@ -563,7 +573,10 @@ function draw_act_arrow()
 		var _fade = min(1, _d / (arrowSpacing * 2)) * min(1, (_len - _d) / (arrowSpacing * 2));
 		var _px = _x1 + lengthdir_x(_padStart + _d, _dir);
 		var _py = _y1 + lengthdir_y(_padStart + _d, _dir);
-		draw_chevron(_px, _py, _dir, arrowSize, arrowCol, _fade);
+		var _list = act_equipped();
+		var _act = global.acts[_list[clamp(actIndex, 0, array_length(_list) - 1)]];
+		
+		draw_chevron(_px, _py, _dir, arrowSize, _act.col, _fade);
 	}
 }
 
@@ -1012,13 +1025,23 @@ function draw_act_hud()
 
 	if (array_length(_list) == 0)
 	{
-		draw_set_colour(c_gray);
+		draw_set_colour(c_black);
+			for (var _dx = -1; _dx <= 1; _dx++)
+				for (var _dy = -1; _dy <= 1; _dy++)
+					if (_dx != 0 || _dy != 0)
+						draw_text_transformed(x + _dx, bbox_top - 18 + _dy, "No acts equipped", 1, 1, 0);
+		draw_set_colour(#989898);
 		draw_text(x, bbox_top - 18, "No acts equipped");
 	}
 	else
 	{
 		var _d = global.acts[_list[clamp(actIndex, 0, array_length(_list) - 1)]];
 		var _warn = (_d.needsTarget && actTarget == noone);
+		draw_set_colour(c_black);
+			for (var _dx = -1; _dx <= 1; _dx++)
+				for (var _dy = -1; _dy <= 1; _dy++)
+					if (_dx != 0 || _dy != 0)
+						draw_text_transformed(x + _dx, bbox_top - 18 + _dy, "< [X]  " + _d.name + "  (" + string(actIndex + 1) + "/" + string(array_length(_list)) + ")" + "  [Z] >", 1, 1, 0);
 		draw_set_colour(_warn ? c_gray : _d.col);
 		draw_text(x, bbox_top - 18, "< [X]  " + _d.name + "  (" + string(actIndex + 1) + "/" + string(array_length(_list)) + ")" + "  [Z] >");
 		if (_warn) draw_text(x, bbox_top - 8, "select a target");

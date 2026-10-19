@@ -12,10 +12,10 @@ draw_set_alpha(1);
 var _sw = sprite_get_width(bookSpr);
 var _sh = sprite_get_height(bookSpr);
 draw_sprite_ext(bookSpr, floor(frame),
-	cx + (sprite_get_xoffset(bookSpr) - _sw / 2) * scale, cy + (sprite_get_yoffset(bookSpr) - _sh / 2) * scale,
+	cx + (sprite_get_xoffset(bookSpr) - _sw / 2) * scale, cy + (sprite_get_yoffset(bookSpr) - _sh / 2) * scale - 24,
 	scale, scale, 0, c_white, 1);
 
-if (phase == 3)
+if (phase == 3 && array_length(tiles) > 0)
 {
 	draw_pages();
 	draw_tooltip();
@@ -25,3 +25,4 @@ draw_set_alpha(1);
 draw_set_colour(c_white);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
+draw_set_font(-1);

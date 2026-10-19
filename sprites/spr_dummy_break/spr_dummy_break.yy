@@ -33,7 +33,7 @@
   "origin":9,
   "parent":{
     "name":"Dummy",
-    "path":"folders/Sprites/Dummy.yy",
+    "path":"folders/Sprites/Enemies/Dummy.yy",
   },
   "preMultiplyAlpha":false,
   "resourceType":"GMSprite",

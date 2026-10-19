@@ -1,8 +1,8 @@
 function mn_menu(_label, _items, _visible = undefined, _tint = undefined)
 { return { type: "menu", label: _label, items: _items, visible: _visible, enabled: undefined, tint: _tint }; }
 
-function mn_button(_label, _action, _visible = undefined, _tint = undefined)
-{ return { type: "button", label: _label, action: _action, visible: _visible, enabled: undefined, tint: _tint }; }
+function mn_button(_label, _action, _visible = undefined, _tint = undefined, _quick = false)
+{ return { type: "button", label: _label, action: _action, visible: _visible, enabled: undefined, tint: _tint, quick: _quick }; }
 
 function mn_toggle(_label, _get, _set)
 { return { type: "toggle", label: _label, get: _get, set: _set, visible: undefined, enabled: undefined }; }
@@ -51,8 +51,8 @@ function ease_out_back(_t)
 function menu_build()
 {
 	return mn_menu("Main Menu", [
-		mn_button(global.menuIngame ? "Continue" : "Start", function() { with (obj_menu) menu_continue(); }, undefined, status_tint(DamageType.COLD)),
-
+		mn_button(global.menuIngame ? "Continue" : "Start", function() { with (obj_menu) menu_continue(); }, undefined, status_tint(DamageType.COLD), true),
+		
 		mn_menu("Settings", [
 			mn_menu("Video", [
 				mn_toggle("Fullscreen",
@@ -90,4 +90,27 @@ function menu_build()
 			status_tint(DamageType.NECROTIC)),
 		mn_button("Quit to Desktop", function() { game_end(); }, undefined, status_tint(DamageType.ACID))
 	]);
+}
+
+// Keeps the part of a polygon left of the line x = _c0 + _k * y (_c0 >= 1000000 = no clipping)
+function clip_poly(_pts, _c0, _k)
+{
+	if (_c0 >= 1000000) return _pts;
+	var _out = [];
+	var _n = array_length(_pts) div 2;
+	for (var i = 0; i < _n; i++)
+	{
+		var _ax = _pts[i * 2], _ay = _pts[i * 2 + 1];
+		var _j = (i + 1) mod _n;
+		var _bx = _pts[_j * 2], _by = _pts[_j * 2 + 1];
+		var _da = _ax - (_c0 + _k * _ay);
+		var _db = _bx - (_c0 + _k * _by);
+		if (_da <= 0) array_push(_out, _ax, _ay);
+		if ((_da <= 0) != (_db <= 0))
+		{
+			var _t = _da / (_da - _db);
+			array_push(_out, _ax + (_bx - _ax) * _t, _ay + (_by - _ay) * _t);
+		}
+	}
+	return _out;
 }

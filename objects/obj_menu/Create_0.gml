@@ -68,6 +68,13 @@ ddScroll = 0;          // first visible row of an open dropdown
 panelWide = 0.62;      // pause panel width for pages with values
 panelCur = panelFrac;
 
+closing = false;
+panelTarget = panelFrac;   // the width the current page wants; panelCur lerps toward it
+pauseZoom = 2.5;           // how far the frozen game zooms in on the player
+zoomPx = 0; zoomPy = 0;    // the player's position in the frozen frame (GUI pixels)
+
+function menu_begin_close() { if (!closing) closing = true; }
+
 function page_wide()
 {
 	var _its = menu_items();
@@ -90,6 +97,7 @@ function menu_setup()
 	open = startOpen;
 	openAnim = startOpen ? 1 : 0;
 	reset_page();
+	panelCur = panelTarget;
 }
 
 // Held directions repeat after a short delay (for sliders)
@@ -114,13 +122,14 @@ function menu_close()
 	cursor = [0];
 	dropOpen = false;
 	rebinding = false;
+	closing = false;
 	io_clear();
 }
 
 function menu_continue()
 {
-	if (ingame) menu_close();
-	else room_goto_next();   // Start: next room in the room order
+	if (ingame) menu_begin_close();
+	else room_goto_next();
 }
 
 function menu_quit_to_menu()
@@ -174,14 +183,14 @@ function reset_page()
 	dropOpen = false;
 	rebinding = false;
 	pageAge = -14;
-	panelCur = page_wide() ? panelWide : panelFrac;
+	panelTarget = page_wide() ? panelWide : panelFrac;   // was panelCur: now it lerps
 }
 
 // ---- Slab swipe: cover -> swap the page under cover -> reveal
-function trans_start(_kind, _node, _tint)
+function trans_start(_kind, _node, _tint, _panel = false)
 {
 	if (instance_exists(obj_slab)) return;
-	instance_create_depth(0, 0, -10000, obj_slab, { job: { kind: _kind, node: _node }, tint: _tint });
+	instance_create_depth(0, 0, -10000, obj_slab, { job: { kind: _kind, node: _node }, tint: _tint, panel: _panel });
 }
 
 function trans_swap(_job)

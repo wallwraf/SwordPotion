@@ -19,4 +19,4 @@ array_push(trail, [x, y]);
 if (array_length(trail) > 8) array_delete(trail, 0, 1);
 
 var _e = collision_circle(x, y, radius, obj_enemy, false, true);
-if (_e != noone || collision_circle(x, y, radius, obj_col, false, true) != noone) impact(_e);
+if (_e != noone || collision_circle(x, y, radius, obj_col, true, true) != noone) impact(_e);

@@ -8,7 +8,8 @@ if (!open)
 }
 
 // ---- Animation clocks (real time)
-openAnim = min(1, openAnim + 0.1);
+openAnim = closing ? max(0, openAnim - 0.1) : min(1, openAnim + 0.1);
+panelCur = lerp(panelCur, panelTarget, 0.18);
 bgT++;
 pageAge++;
 kick *= 0.82;
@@ -35,6 +36,11 @@ var _count = array_length(_items);
 cursor[_level] = clamp(cursor[_level], 0, _count - 1);
 for (var i = 0; i < _count; i++) sel[i] = lerp(sel[i], (i == cursor[_level]) ? 1 : 0, 0.3);
 var _it = _items[cursor[_level]];
+if (closing)
+{
+	if (openAnim <= 0) menu_close();
+	exit;
+}
 
 // Input is locked while a swipe plays
 if (instance_exists(obj_slab)) exit;
@@ -107,12 +113,13 @@ if (_confirm && node_enabled(_it))
 	switch (_it.type)
 	{
 		case "menu":
-			trans_start("push", _it, item_tint(_it, cursor[_level], _level));
+			trans_start("push", _it, item_tint(_it, cursor[_level], _level), ingame);
 			menu_sfx("select");
 			break;
 		case "button":
 			menu_sfx("select");
-			trans_start("action", _it, item_tint(_it, cursor[_level], _level));
+			if (ingame && _it[$ "quick"] == true) { _it.action(); exit; }   // Continue: plays the opening in reverse
+			trans_start("action", _it, item_tint(_it, cursor[_level], _level), false);
 			exit;
 		case "toggle":
 			_it.set(!_it.get());
@@ -135,11 +142,8 @@ if (_back)
 {
 	if (array_length(stack) > 1)
 	{
-		trans_start("pop", undefined, tint_of(array_length(stack) - 2));
+		trans_start("pop", undefined, tint_of(array_length(stack) - 2), ingame);
 		menu_sfx("back");
 	}
-	else if (ingame)
-	{
-		trans_start("action", { action: function() { with (obj_menu) menu_close(); } }, current_tint());
-	}
+	else if (ingame) menu_begin_close();
 }

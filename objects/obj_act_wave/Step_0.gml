@@ -1,6 +1,6 @@
 var _ts = global.timeScale;
 life -= _ts;
-if (life <= 0 || collision_point(x + dir * 5, y - 4, obj_col, false, true) != noone) { instance_destroy(); exit; }
+if (life <= 0 || collision_point(x + dir * 5, y - 4, obj_col, true, true) != noone) { instance_destroy(); exit; }
 
 x += dir * spd * _ts;
 
