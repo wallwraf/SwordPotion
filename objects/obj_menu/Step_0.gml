@@ -27,7 +27,7 @@ for (var i = 0; i < array_length(glints); i++)
 {
 	var _g = glints[i];
 	_g.life += _g.spd;
-	if (_g.life >= 1) { _g.life = 0; _g.x = random(1); _g.y = random(1); _g.s = random_range(7, 15); }
+	if (_g.life >= 1) { _g.life = 0; _g.x = random(1); _g.y = random(1); _g.s = random_range(10, 26); _g.rot = random_range(-8, 8); }
 }
 
 var _items = menu_items();
@@ -113,7 +113,7 @@ if (_confirm && node_enabled(_it))
 	switch (_it.type)
 	{
 		case "menu":
-			trans_start("push", _it, item_tint(_it, cursor[_level], _level), ingame);
+			trans_start("push", _it, page_first_tint(_it), ingame);
 			menu_sfx("select");
 			break;
 		case "button":

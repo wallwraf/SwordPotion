@@ -1,0 +1,27 @@
+Options for music_play(song, {...})
+
+fade:					Frames to fade, default 10. 0 snaps.
+fadeOut, fadeIn:		Fade each side separately (both default to fade).
+at:						"now" (default), "loop" (at the current loop point), or "bar" (next bar line, needs bpm).
+queue:					'true': plays after the current song’s final loop pass, behind anything already queued.
+loops:					Loop passes the current song plays before a queued song takes over (default 1).
+loop:					'false' plays once.
+loopStart, loopEnd:		Override the song’s loop points for this call.
+volume, pitch:			Multiply the song’s defaults.
+startAt:				Start position in seconds.
+resume:					Pick up where this song was last interrupted, which suits “return to the forest after combat”.
+stinger:				Plays once over the current song, which ducks and then comes back.
+duck:					For stingers: how far the music ducks (default 0.25, 0 = silent underneath).
+priority, force:		A lower-priority request can’t interrupt a higher one, unless force: true.
+lock:					Nothing can interrupt it until it ends or you call music_unlock().
+clear:					'false' keeps the queue when replacing (default clears it).
+restart:				'true' restarts the song even if it’s already playing.
+
+Examples:
+music_play("forest");                                    // fades in over 10 frames
+music_play("boss", { fade: 0 });                         // snaps
+music_play("cave", { at: "loop", fade: 30 });            // waits for the loop point, crossfades over 30 frames
+music_play("outro", { queue: true, loops: 2 });          // after two more passes of whatever's playing
+music_play("fanfare", { stinger: true, duck: 0.2 });	 // plays over music, and quietens it to 20%
+music_play("cutscene", { lock: true, loop: false });     // protected from rules until it ends
+music_stop(30);

@@ -261,27 +261,47 @@ function item_roll(_ids = undefined, _luck = 0)
 
 // ======================= DRAWING / TEXT =======================
 
+//Outline
+function draw_grad_rect(_x1, _y1, _x2, _y2, _col, _a1, _a2)
+{
+	draw_primitive_begin(pr_trianglestrip);
+	draw_vertex_colour(_x1, _y1, _col, _a1);
+	draw_vertex_colour(_x2, _y1, _col, _a1);
+	draw_vertex_colour(_x1, _y2, _col, _a2);
+	draw_vertex_colour(_x2, _y2, _col, _a2);
+	draw_primitive_end();
+}
+
+// _w = the full size including the outline
 function item_draw_icon(_it, _x, _y, _w, _letterScale)
 {
 	var _def = item_def(_it);
-	var _ic = _def[$ "icon"] ?? -1;
-	if (_ic != -1 && sprite_exists(_ic))
-		draw_sprite_ext(_ic, 0, _x, _y, _w / sprite_get_width(_ic), _w / sprite_get_height(_ic), 0, c_white, 1);   // icon origin = top-left
+	var _t  = max(1, round(_w / 18));   // outline thickness
+	var _ic = _w - _t * 2;              // the sprite sits inside the outline
+	var _ix = _x + _t;
+	var _iy = _y + _t;
+	var _spr = _def[$ "icon"] ?? -1;
+
+	if (_spr != -1 && sprite_exists(_spr))
+		draw_sprite_ext(_spr, 0, _ix, _iy, _ic / sprite_get_width(_spr), _ic / sprite_get_height(_spr), 0, c_white, 1);   // icon origin = top-left
 	else
 	{
 		var _ty = item_types(_def);
-		var _m = _w * 0.16;
+		var _m = _ic * 0.12;
 		draw_set_colour((array_length(_ty) > 0) ? type_col(_ty[0]) : make_colour_rgb(190, 175, 150));
-		draw_rectangle(_x + _m, _y + _m, _x + _w - _m, _y + _w - _m, false);
+		draw_rectangle(_ix + _m, _iy + _m, _ix + _ic - _m, _iy + _ic - _m, false);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_colour(c_black);
-		draw_text_transformed(_x + _w / 2, _y + _w / 2, string_upper(string_char_at(_def.name, 1)), _letterScale, _letterScale, 0);
+		draw_text_transformed(_ix + _ic / 2, _iy + _ic / 2, string_upper(string_char_at(_def.name, 1)), _letterScale, _letterScale, 0);
 	}
-	// rarity frame
-	draw_set_colour(item_col(_it));
-	draw_rectangle(_x + 1, _y + 1, _x + _w - 2, _y + _w - 2, true);
-	draw_rectangle(_x + 2, _y + 2, _x + _w - 3, _y + _w - 3, true);
+
+	// rarity outline: opaque at the bottom, transparent at the top
+	var _c = item_col(_it);
+	draw_grad_rect(_x, _y, _x + _t, _y + _w, _c, 0, 1);                                // left
+	draw_grad_rect(_x + _w - _t, _y, _x + _w, _y + _w, _c, 0, 1);                      // right
+	draw_grad_rect(_x + _t, _y, _x + _w - _t, _y + _t, _c, 0, _t / _w);                // top
+	draw_grad_rect(_x + _t, _y + _w - _t, _x + _w - _t, _y + _w, _c, 1 - _t / _w, 1);  // bottom
 }
 
 // Lines for the tooltip: { text, col, size, wrap?, gap? }

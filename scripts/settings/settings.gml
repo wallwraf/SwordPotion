@@ -23,7 +23,6 @@ global.paused = false;
 global.resPercents = [0.25, 0.5, 0.75, 1];
 global.languages = ["English"];
 global.strings = {};
-global.musicInst = -1;
 global.mainMenuRoom = rm_menu;
 global.menuSnd = { move: snd_menuMove, select: snd_menuSelect, back: snd_menuBack };
 
@@ -88,19 +87,6 @@ function settings_load()
 		catch (_e) { show_debug_message("settings.json unreadable, using defaults"); }
 	}
 	settings_apply();
-}
-
-// Music
-function music_play(_snd, _loop = true)
-{
-	if (global.musicInst != -1 && audio_is_playing(global.musicInst)) audio_stop_sound(global.musicInst);
-	global.musicInst = audio_play_sound(_snd, 100, _loop, global.settings.music);
-}
-
-function music_apply()
-{
-	if (global.musicInst != -1 && audio_is_playing(global.musicInst))
-		audio_sound_gain(global.musicInst, global.settings.music, 0);
 }
 
 function menu_sfx(_name)

@@ -90,8 +90,7 @@ if (cS > 0.01)
 	draw_set_colour(c_white);
 	draw_text_transformed(bpx(0, 0), bpy(0, 0), _title, _tsz, _tsz, menuAngle);
 	var _uv = _th * 0.55;
-	bquad(-4 * _u, _uv, _tw + 30 * _u, _uv + 4 * _u, merge_colour(bgCol, c_black, 0.7), 1, 3 * _u, 4 * _u);
-	bquad(-4 * _u, _uv, _tw + 30 * _u, _uv + 4 * _u, c_white, 1);
+	draw_title_bar(-4 * _u, _tw + 30 * _u, _uv, 4 * _u, _u);
 	draw_set_font(fnt_menu);
 }
 
@@ -202,13 +201,17 @@ for (var pass = 0; pass < 2; pass++)   // selected button last, so it overlaps i
 				break;
 		}
 
-		// Cursor arrow at the top-left of the selected button
+		// Cursor: a triangular chip of the button itself, at its top-left corner
 		if (i == _selI)
 		{
-			var _ax = -8 * _u + sin(current_time * 0.012) * 2 * _u;
-			var _ay = -_bh / 2 + 9 * _u;
-			btri(_ax + 2 * _u, _ay, _ax - 15 * _u, _ay - 10 * _u, _ax - 15 * _u, _ay + 10 * _u, c_black);
-			btri(_ax, _ay, _ax - 13 * _u, _ay - 8 * _u, _ax - 13 * _u, _ay + 8 * _u, c_white);
+			var _cw = _bh * 0.31;                          // chip width
+			var _ch = _bh * 0.35;                          // chip height
+			var _chipGap = 2.5 * _u;                       // gap between the chip and the button
+			var _bob = sin(current_time * 0.012) * 0.8 * _u;
+			var _cx1 = -_cw - _chipGap + _bob, _cx2 = -_chipGap + _bob;
+			var _cy1 = -_bh / 2;
+//			btri(_cx1, _cy1, _cx1, _cy1 + _ch, _cx2, _cy1 + _ch / 2, merge_colour(bgCol, c_black, 0.7), 4 * _u, 5 * _u);   // the button's shadow
+			btri(_cx1, _cy1, _cx1, _cy1 + _ch, _cx2, _cy1 + _ch / 2, _bgc);                                                // the button's colour
 		}
 	}
 }

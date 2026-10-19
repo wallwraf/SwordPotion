@@ -1,0 +1,1 @@
+if (place_meeting(x, y, obj_player) && global.musicArea != area) music_set_area(area);

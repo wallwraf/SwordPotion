@@ -22,7 +22,7 @@ for (var j = 0; j <= 5; j++)
 	_edge[j] = lerp(-_slack, _range + _slack, _eq);
 }
 
-var _cols = [tint, c_black, make_colour_rgb(205, 205, 210), c_black, tint];
+var _cols = [tint, c_black, make_colour_rgb(205, 205, 210), c_black, tintCur];
 for (var k = 0; k < 5; k++)
 {
 	if (_edge[k + 1] - _edge[k] < 0.5) continue;

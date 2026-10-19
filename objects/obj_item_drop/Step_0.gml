@@ -36,6 +36,7 @@ if (age >= pickDelay)
 	{
 		if (_pl.inv_add(item))
 		{
+			music_item(item);   // item rules can play a stinger
 			with (_pl) show_number(item_name(other.item), item_col(other.item));   // floating name in the rarity colour
 			instance_destroy();
 		}

@@ -1,5 +1,0 @@
-healing =
-1. Heal			-  8hp
-2. OkHeal		- 15hp
-3. BetterHeal	- 24hp
-4. SuperiorHeal - 35hp

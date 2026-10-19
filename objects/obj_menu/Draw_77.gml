@@ -9,6 +9,7 @@ if (capture)
 	zoomPy = ((obj_player.bbox_top + obj_player.bbox_bottom) / 2 - camera_get_view_y(_cam)) / camera_get_view_height(_cam) * _gh;
 	closing = false;
 	instance_deactivate_all(true);   // keeps this object running
+	instance_activate_object(obj_music);   // the music keeps running while the game is paused
 	global.paused = true;
 	open = true;
 	openAnim = 0;

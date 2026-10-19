@@ -10,6 +10,8 @@ cursor = [0];
 open = false;
 openAnim = 0;
 
+music_boot();
+
 menuPalette = [
 	status_tint(DamageType.COLD),      status_tint(DamageType.FIRE),
 	status_tint(DamageType.POISON),    status_tint(DamageType.PSYCHIC),
@@ -61,8 +63,8 @@ repeat (70) array_push(dust, { x: random(1), y: random(1), s: random_range(0.6, 
 	vx: random_range(0.0001, 0.0005), vy: random_range(0.0002, 0.0008), ph: random(6.28) });
 
 glints = [];
-repeat (9) array_push(glints, { x: random(1), y: random(1), s: random_range(7, 15),
-	life: random(1), spd: random_range(0.006, 0.014) });
+repeat (7) array_push(glints, { x: random(1), y: random(1), s: random_range(10, 26),
+	life: random(1), spd: random_range(0.004, 0.010), rot: random_range(-8, 8) });
 
 ddScroll = 0;          // first visible row of an open dropdown
 panelWide = 0.62;      // pause panel width for pages with values
@@ -187,10 +189,24 @@ function reset_page()
 }
 
 // ---- Slab swipe: cover -> swap the page under cover -> reveal
-function trans_start(_kind, _node, _tint, _panel = false)
+function trans_start(_kind, _node, _nextTint, _panel = false)
 {
 	if (instance_exists(obj_slab)) return;
-	instance_create_depth(0, 0, -10000, obj_slab, { job: { kind: _kind, node: _node }, tint: _tint, panel: _panel });
+	instance_create_depth(0, 0, -10000, obj_slab, {
+		job: { kind: _kind, node: _node }, tint: _nextTint, tintCur: bgCol, panel: _panel   // tintCur = what's on screen right now
+	});
+}
+
+// The tint a submenu's page opens with (its first option), so the slab can lead into the colour it will actually show
+function page_first_tint(_node)
+{
+	var _lvl = array_length(stack);
+	for (var i = 0; i < array_length(_node.items); i++)
+	{
+		var _n = _node.items[i];
+		if (_n.visible == undefined || _n.visible()) return item_tint(_n, 0, _lvl);
+	}
+	return tintDefault;
 }
 
 function trans_swap(_job)
@@ -201,12 +217,14 @@ function trans_swap(_job)
 			array_push(stack, _job.node);
 			array_push(cursor, 0);
 			reset_page();
+			bgCol = current_tint();
 			break;
 		case "pop":
 			array_pop(stack);
 			array_pop(cursor);
 			settings_save();
 			reset_page();
+			bgCol = current_tint();
 			break;
 		case "action":
 			_job.node.action();   // Start, Continue, Quit...
@@ -242,12 +260,12 @@ function bquad(_u0, _v0, _u1, _v1, _col, _alpha, _ox = 0, _oy = 0)
 	draw_primitive_end();
 }
 
-function btri(_u0, _v0, _u1, _v1, _u2, _v2, _col)
+function btri(_u0, _v0, _u1, _v1, _u2, _v2, _col, _ox = 0, _oy = 0)
 {
 	draw_primitive_begin(pr_trianglelist);
-	draw_vertex_colour(bpx(_u0, _v0), bpy(_u0, _v0), _col, 1);
-	draw_vertex_colour(bpx(_u1, _v1), bpy(_u1, _v1), _col, 1);
-	draw_vertex_colour(bpx(_u2, _v2), bpy(_u2, _v2), _col, 1);
+	draw_vertex_colour(bpx(_u0, _v0) + _ox, bpy(_u0, _v0) + _oy, _col, 1);
+	draw_vertex_colour(bpx(_u1, _v1) + _ox, bpy(_u1, _v1) + _oy, _col, 1);
+	draw_vertex_colour(bpx(_u2, _v2) + _ox, bpy(_u2, _v2) + _oy, _col, 1);
 	draw_primitive_end();
 }
 
@@ -295,6 +313,24 @@ function draw_poly(_pts, _col, _alpha, _clip = true)
 	draw_primitive_end();
 }
 
+function draw_diamond_outline(_cx, _cy, _r, _ang, _t, _col, _alpha)
+{
+	var _px = [], _py = [];
+	for (var k = 0; k < 4; k++)
+	{
+		array_push(_px, _cx + lengthdir_x(_r, _ang + k * 90));
+		array_push(_py, _cy + lengthdir_y(_r, _ang + k * 90));
+	}
+	for (var k = 0; k < 4; k++)
+	{
+		var _j = (k + 1) mod 4;
+		var _dx = _px[_j] - _px[k], _dy = _py[_j] - _py[k];
+		var _l = max(0.001, point_distance(0, 0, _dx, _dy));
+		var _nx = -_dy / _l * _t / 2, _ny = _dx / _l * _t / 2;
+		draw_poly([_px[k] + _nx, _py[k] + _ny, _px[_j] + _nx, _py[_j] + _ny, _px[_j] - _nx, _py[_j] - _ny, _px[k] - _nx, _py[k] - _ny], _col, _alpha);
+	}
+}
+
 // ---- The living background
 function draw_menu_bg(_W, _H, _u)
 {
@@ -327,19 +363,18 @@ function draw_menu_bg(_W, _H, _u)
 		if (_px > clipX0 + clipK * _py) continue;
 		var _al = 0.2 + 0.4 * (0.5 + 0.5 * sin(_d.ph + bgT * 0.05));
 		var _r = _d.s * _u;
-		draw_poly([_px, _py - _r, _px + _r, _py, _px, _py + _r, _px - _r, _py], _light, _al, false);
+		draw_poly([_px, _py - _r, _px + _r, _py, _px, _py + _r, _px - _r, _py], _light, _al, true);
 	}
 
-	// Glints: four-point twinkles
-	//for (var i = 0; i < array_length(glints); i++)
-	//{
-	//	var _g = glints[i];
-	//	var _px = _g.x * _W, _py = _g.y * _H;
-	//	var _sz = sin(_g.life * pi) * _g.s * _u;
-	//	if (_sz < 0.5 || _px > clipX0 + clipK * _py) continue;
-	//	draw_poly([_px - _sz, _py, _px, _py - _sz * 0.16, _px + _sz, _py, _px, _py + _sz * 0.16], c_white, 0.9, false);
-	//	draw_poly([_px, _py - _sz, _px + _sz * 0.16, _py, _px, _py + _sz, _px - _sz * 0.16, _py], c_white, 0.9, false);
-	//}
+	// Glints: outlined diamonds that fade in and out, clipped at the pause panel's border
+	for (var i = 0; i < array_length(glints); i++)
+	{
+		var _g = glints[i];
+		var _fade = sin(_g.life * pi);
+		if (_fade < 0.02) continue;
+		var _r = _g.s * _u * (0.85 + 0.15 * _fade);
+		draw_diamond_outline(_g.x * _W, _g.y * _H, _r, _g.rot, max(1, _u * 0.8), _light, 0.55 * _fade);
+	}
 }
 
 // Thick frame made of four slanted bars
@@ -349,4 +384,30 @@ function bframe_thick(_u0, _v0, _u1, _v1, _col, _t)
 	bquad(_u0, _v1 - _t, _u1, _v1, _col, 1);
 	bquad(_u0, _v0, _u0 + _t, _v1, _col, 1);
 	bquad(_u1 - _t, _v0, _u1, _v1, _col, 1);
+}
+
+// The title underline. Every so often a transparent slit runs along it, showing the background beneath.
+function draw_title_bar(_u0, _u1, _v, _thick, _u)
+{
+	var _shadow = merge_colour(bgCol, c_black, 0.7);
+	var _len = _u1 - _u0;
+
+	var _period = 220;   // frames between slits
+	var _travel = 70;    // frames a slit takes to cross the bar
+	var _t = (bgT mod _period) / _travel;
+	var _segs = [];
+
+	if (_t > 1) array_push(_segs, [_u0, _u1]);
+	else
+	{
+		var _gw = 10 * _u;                                   // slit width
+		var _e = _t * _t * (3 - 2 * _t);
+		var _c = _u0 - _gw + _e * (_len + _gw * 2);
+		var _g0 = _c - _gw / 2, _g1 = _c + _gw / 2;
+		if (_g0 > _u0) array_push(_segs, [_u0, min(_g0, _u1)]);
+		if (_g1 < _u1) array_push(_segs, [max(_g1, _u0), _u1]);
+	}
+
+	for (var i = 0; i < array_length(_segs); i++) bquad(_segs[i][0], _v, _segs[i][1], _v + _thick, _shadow, 1, 3 * _u, 4 * _u);
+	for (var i = 0; i < array_length(_segs); i++) bquad(_segs[i][0], _v, _segs[i][1], _v + _thick, c_white, 1);
 }

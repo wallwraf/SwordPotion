@@ -1,0 +1,11 @@
+{
+  "$GMNotes":"v1",
+  "%Name":"music_play()",
+  "name":"music_play()",
+  "parent":{
+    "name":"SwordPotion",
+    "path":"SwordPotion.yyp",
+  },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
+}

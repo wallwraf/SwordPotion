@@ -254,3 +254,10 @@ function enemy_move()
 		else { vSpd = 0; vSpdRem = 0; break; }
 	}
 }
+
+// Custom states count as combat too, so charging and dashing enemies keep the battle music up
+function in_combat()
+{
+	if (state == EnemyState.DEAD) return false;
+	return (state == EnemyState.CHASE || state == EnemyState.ATTACK || state >= EnemyState.CUSTOM);
+}
