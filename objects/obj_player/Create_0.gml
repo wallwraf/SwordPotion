@@ -49,17 +49,7 @@ spr =
 }
 
 // State Machine
-enum PlayerState
-{
-	FREE,
-	IN_AIR,
-	LAND,
-	ATTACK,
-	ACTION,
-	ACT_RUN,
-	HURT,
-	DEAD
-}
+enum PlayerState { FREE, IN_AIR, LAND, ATTACK, ACTION, ACT_RUN, PARRY, HURT, DEAD }
 
 state = PlayerState.FREE;
 stateTimer = 0;
@@ -127,6 +117,13 @@ actAi = 0;
 actHeld = 0;
 actPicked = false;
 actHoldMin = 20;   // frames you must hold the menu before a no-target act can fire
+
+// ---- Combat: dodge, parry, crits
+dodgeT = 0; dodgeAge = 0; dodgeCd = 0; dodgeHit = false;
+boostT = 0; speedMult = 1;
+fastAtkT = 0; atkSpeed = 1;
+parryAge = 0; parryHit = false; parryCd = 0;
+bulletT = 0; critT = 0; swingCrit = false;
 
 if (!instance_exists(obj_inventory)) instance_create_depth(0, 0, -100, obj_inventory);
 
@@ -219,6 +216,7 @@ function attack_types()
 	var _t = item_types(item_def(_w));
 	return (array_length(_t) > 0) ? _t : [DamageType.BLUDGEONING];
 }
+
 function attack_type() { return attack_types()[0]; }
 
 function attack_power()
@@ -255,7 +253,6 @@ function act_equipped()   // compact list in slot order
 	return _out;
 }
 
-// ---- Running an act
 function act_start(_act, _target)
 {
 	actCur = global.acts[_act];
@@ -332,32 +329,121 @@ function act_hit_circle(_cx, _cy, _r, _mult = 1, _knock = 2)
 
 function act_wave(_dir)
 {
-	instance_create_depth(x + _dir * 8, bbox_bottom, depth - 1, obj_act_wave, {
-		dir: _dir, spd: 4, life: 45, h: 16, dmg: act_power(1), type: actCur.type, src: id, col: actCur.col, knock: 3
-	});
+    var _act = actCur;
+    var _art = undefined;
+    var _wave = undefined;
+    var _spr = -1;
+
+    if (is_struct(_act))
+    {
+        if (variable_struct_exists(_act, "art"))
+        {
+            _art = _act.art;
+
+            if (is_struct(_art) && variable_struct_exists(_art, "wave"))
+            {
+                _wave = _art.wave;
+
+                if (is_struct(_wave) && variable_struct_exists(_wave, "spr"))
+                {
+                    _spr = _wave.spr;
+                }
+            }
+        }
+    }
+
+    instance_create_depth(
+        x + _dir * 8,
+        bbox_bottom,
+        depth - 1,
+        obj_act_wave,
+        {
+            dir: _dir,
+            spd: 4,
+            life: 22,
+			h: 16,
+            dmg: act_power(1),
+            type: actCur.type,
+            src: id,
+            col: actCur.col,
+            knock: 3,
+            spr: _spr
+        }
+    );
 }
 
 function act_projectile(_x, _y, _tx, _ty)
 {
-	var _c = actCur.cast;
-	var _hv, _vv;
-	if (_c.grav > 0)
-	{
-		// ballistic arc that lands on the aim point
-		var _T = max(10, point_distance(_x, _y, _tx, _ty) / _c.spd);
-		_hv = (_tx - _x) / _T;
-		_vv = (_ty - _y) / _T - 0.5 * _c.grav * _T;
-	}
-	else
-	{
-		var _dir = point_direction(_x, _y, _tx, _ty);
-		_hv = lengthdir_x(_c.spd, _dir);
-		_vv = lengthdir_y(_c.spd, _dir);
-	}
-	instance_create_depth(_x, _y, depth - 1, obj_act_projectile, {
-		hv: _hv, vv: _vv, spd: _c.spd, grav: _c.grav, homing: _c.homing, radius: _c.radius, splash: _c.splash,
-		knock: _c.knock, col: actCur.col, type: actCur.type, dmg: act_power(), src: id, target: actTargetRun
-	});
+    var _c = actCur.cast;
+
+    var _art = {};
+    var _proj = {};
+    var _spr = -1;
+
+    if (is_struct(actCur) && variable_struct_exists(actCur, "art"))
+    {
+        if (is_struct(actCur.art))
+        {
+            _art = actCur.art;
+        }
+    }
+
+    if (variable_struct_exists(_art, "proj"))
+    {
+        if (is_struct(_art.proj))
+        {
+            _proj = _art.proj;
+        }
+    }
+
+    if (variable_struct_exists(_proj, "spr"))
+    {
+        _spr = _proj.spr;
+    }
+
+    var _hv, _vv;
+
+    if (_c.grav > 0)
+    {
+        var _T = max(
+            10,
+            point_distance(_x, _y, _tx, _ty) / _c.spd
+        );
+
+        _hv = (_tx - _x) / _T;
+        _vv = (_ty - _y) / _T - 0.5 * _c.grav * _T;
+    }
+    else
+    {
+        var _dir = point_direction(_x, _y, _tx, _ty);
+
+        _hv = lengthdir_x(_c.spd, _dir);
+        _vv = lengthdir_y(_c.spd, _dir);
+    }
+
+    instance_create_depth(
+        _x,
+        _y,
+        depth - 1,
+        obj_act_projectile,
+        {
+            hv: _hv,
+            vv: _vv,
+            spd: _c.spd,
+            grav: _c.grav,
+            homing: _c.homing,
+            radius: _c.radius,
+            splash: _c.splash,
+            knock: _c.knock,
+            col: actCur.col,
+            type: actCur.type,
+            dmg: act_power(),
+            src: id,
+            target: actTargetRun,
+            spr: _spr,
+            art: _art
+        }
+    );
 }
 
 // ---- Built-in cast routine: windup -> fire -> recover (kinds: proj, instant, burst)
@@ -404,11 +490,14 @@ function act_cast_fire()
 	{
 		case "proj":
 			act_projectile(x + facing * 10, _cy, _tx, _ty);
+			act_art("cast", x + facing * 10, _cy);
 			break;
 
 		case "instant":
 			if (actTargetRun == noone || !instance_exists(actTargetRun)) break;
-			act_fx("beam", { x1: _c.sky ? _tx : x, y1: _c.sky ? _ty - 160 : _cy, x2: _tx, y2: _ty, thick: 5, col: actCur.col, life: 14 });
+			act_art("cast", x, _cy);
+			if (!act_art("hit", _tx, _ty))
+				act_fx("beam", { x1: _c.sky ? _tx : x, y1: _c.sky ? _ty - 160 : _cy, x2: _tx, y2: _ty, thick: 5, col: actCur.col, life: 14 });
 			if (is_enemy(actTargetRun))
 			{
 				var _dealt = actTargetRun.receive_hit(act_power(), actCur.type, id, _c.knock);
@@ -421,12 +510,12 @@ function act_cast_fire()
 			if (_c.shape == "rect")
 			{
 				act_hit_rect(x + facing * 4, bbox_top - 6, x + facing * _c.w, bbox_bottom, 1, _c.knock);
-				act_fx("ring", { x1: x + facing * _c.w * 0.5, y1: _cy, r0: 6, r1: 24, col: actCur.col, life: 12 });
+				if (!act_art("burst", x + facing * _c.w * 0.5, _cy)) act_fx("ring", { x1: x + facing * _c.w * 0.5, y1: _cy, r0: 6, r1: 24, col: actCur.col, life: 12 });
 			}
 			else
 			{
 				act_hit_circle(x, _cy, _c.r, 1, _c.knock);
-				act_fx("ring", { x1: x, y1: _cy, r0: 8, r1: _c.r, col: actCur.col, life: 16 });
+				if (!act_art("burst", x, _cy)) act_fx("ring", { x1: x, y1: _cy, r0: 8, r1: _c.r, col: actCur.col, life: 16 });
 			}
 			screen_shake(_c.shake);
 			break;
@@ -604,28 +693,51 @@ function kill()
 	state_change(PlayerState.DEAD);
 }
 
-// Same pipeline as the enemy's receive_hit
-function take_damage(_atk, _type = DamageType.BLUDGEONING, _src = noone, _knock = 3)
+function take_damage(_atk, _type = DamageType.BLUDGEONING, _src = noone, _knock = 3, _info = undefined)
 {
 	if (state == PlayerState.DEAD || iframes > 0 || hp <= 0) return 0;
+	var _a = atk_info(_info);
+
+	// 1. A dodge avoids it completely
+	if (dodge_check(_a, _src)) return 0;
+
+	// 2. Perfect parry and parry stop it completely. Blocking only reduces it.
+	var _pr = parry_check(_a);
+	if (_pr == "perfect" || _pr == "parry") { parry_success(_pr, _src); return 0; }
+	var _blocked = (_pr == "block");
 
 	var _row  = global.damageTypes[_type];
 	var _def  = stat_get(_row.def);
 	var _base = round(max(minDamage, _atk - _def) * affinity[_type] * vulnMult);
-	if (_base <= 0) return 0;   // immune
+	if (_base <= 0) return 0;
 
 	var _hit = _row[$ "hit"] ?? {};
+	var _dealt = _blocked ? block_damage(_base) : _base;
 
-	hp = max(0, hp - _base);
+	hp = max(0, hp - _dealt);
 	hpChipTimer = hpChipDelay;
 	barShowTimer = barShowTime;
 	flashTimer = flashDur;
-	iframes = iframeTime;
-	show_number(_base, _row[$ "hitCol"] ?? c_white);
+	show_number(_dealt, _row[$ "hitCol"] ?? c_white);
 
 	var _dir = -facing;
 	if (_src != noone && instance_exists(_src) && x != _src.x) _dir = sign(x - _src.x);
 	var _k = _knock * (_hit[$ "knock"] ?? 1) * (1 - knockResist);
+
+	if (_blocked)
+	{
+		var _c = global.combatCfg;
+		parryHit = true;
+		iframes = _c.blockIframes;
+		hSpd = _dir * _k * _c.blockKnock;       // a small slide, and no hurt state: you keep blocking
+		show_number("Blocked", c_gray);
+		var _pt = parry_point(_src);
+		fx_emit("spark_block", _pt.x, _pt.y, 1);
+		if (hp <= 0) kill();
+		return _dealt;
+	}
+
+	iframes = iframeTime;
 	hSpd = _dir * _k;
 	vSpd = -_k;
 
@@ -638,7 +750,7 @@ function take_damage(_atk, _type = DamageType.BLUDGEONING, _src = noone, _knock 
 		if (state == PlayerState.ACTION) global.timeScaleTarget = 1;
 		state_change(PlayerState.HURT);
 	}
-	return _base;
+	return _dealt;
 }
 
 function heal(_amount)
@@ -707,6 +819,7 @@ function state_change(_new_state)
 	state = _new_state;
 	stateTimer = 0;
 	
+	if (dodgeT > 0 && _new_state != PlayerState.FREE && _new_state != PlayerState.IN_AIR && _new_state != PlayerState.LAND) dodge_end();
 	if (_new_state != PlayerState.IN_AIR) isJumping = false;
 	
 	switch (_new_state)
@@ -719,6 +832,15 @@ function state_change(_new_state)
 			sprite_index = spr.attack;
 			image_index = 0;
 			hitList = [];
+			swingCrit = (critT > 0) || (random(1) < global.combatCfg.critChance);   // a guaranteed crit if armed, otherwise 0.5%
+			critT = 0;
+			atkSpeed = (fastAtkT > 0) ? global.combatCfg.fastAtkMult : 1;            // perfect dodge: this swing is faster
+			fastAtkT = 0;
+			break;
+			
+		case PlayerState.PARRY:
+			parryAge = 0;
+			parryHit = false;
 			break;
 			
 		case PlayerState.IN_AIR:
@@ -752,7 +874,7 @@ function state_free()
 {
 	var _move = kRight - kLeft;
 	var _run = kRun;
-	var _target = _move * (_run ? runSpd : walkSpd);
+	var _target = _move * (_run ? runSpd : walkSpd) * speedMult;
 	
 	if (_move != 0)
 	{
@@ -776,6 +898,8 @@ function state_free()
 	else								sprite_index = spr.walk;
 	
 	// Transitions
+	if (kParryPressed && parryCd <= 0) { state_change(PlayerState.PARRY); return; }
+	if (kRunPressed && dodgeT <= 0 && dodgeCd <= 0) dodge_start();   // no state change: movement keeps following your keys
 	if (kJump)
 	{
 		sfx_play(snd_jump);
@@ -801,6 +925,7 @@ function state_free()
 function state_inair()
 {
 	var _move = kRight - kLeft;
+	var _ws = walkSpd * speedMult;
 	if (_move != 0) facing = _move;
 	
 	if (_move != 0)
@@ -808,11 +933,11 @@ function state_inair()
 		facing = _move;
 		
 		if (sign(hSpd) != 0 && sign(hSpd) != _move)
-			hSpd = approach(hSpd, _move * walkSpd, airTurn);
-		else if (abs(hSpd) > walkSpd)
-			hSpd = approach(hSpd, _move * walkSpd, airDrag);
+			hSpd = approach(hSpd, _move * _ws, airTurn);
+		else if (abs(hSpd) > _ws)
+			hSpd = approach(hSpd, _move * _ws, airDrag);
 		else
-			hSpd = approach(hSpd, _move * walkSpd, airAccel);
+			hSpd = approach(hSpd, _move * _ws, airAccel);
 	}
 	else
 	{
@@ -832,10 +957,20 @@ function state_inair()
 	else if (sprite_index == spr.fall && anim_ended()) sprite_index = spr.fallLoop;
 	
 	// Transitions
+	if (kParryPressed && parryCd <= 0) { state_change(PlayerState.PARRY); return; }
+	if (kRunPressed && dodgeT <= 0 && dodgeCd <= 0) dodge_start();   // no state change: movement keeps following your keys
 	if (onGround && vSpd >= 0)
 	{
 		vSpd = 0;
-		state_change(peakFall >= landMinFall ? PlayerState.LAND : PlayerState.FREE);
+		var _long = (peakFall >= landMinFall);
+		if (_long)
+		{
+			// pixel dust either side of your feet, bigger with a longer fall
+			var _s = clamp((peakFall - landMinFall) / 8, 0, 1);
+			fx_emit("dust_land", x - 3, bbox_bottom, 0.6 + _s * 1.6, { angle: 165, spread: 60 });
+			fx_emit("dust_land", x + 3, bbox_bottom, 0.6 + _s * 1.6, { angle: 15, spread: 60 });
+		}
+		state_change(_long ? PlayerState.LAND : PlayerState.FREE);
 	}
 	else if (kSelect)
 	{
@@ -861,6 +996,8 @@ function state_land()
 	if (!onGround) { state_change(PlayerState.IN_AIR); return; }
 	
 	// Instant Cancels
+	if (kParryPressed && parryCd <= 0) { state_change(PlayerState.PARRY); return; }
+	if (kRunPressed && dodgeT <= 0 && dodgeCd <= 0) dodge_start();   // no state change: movement keeps following your keys
 	if (kJump)
 	{
 		sfx_play(snd_jump);
@@ -885,6 +1022,7 @@ function state_land()
 
 function state_attack()
 {
+	image_speed = global.timeScale * atkSpeed;
 	var _hitStart = 1;
 	var _hitEnd = 2;
 	
@@ -897,7 +1035,7 @@ function state_attack()
 			var _e = _list[| i];
 			if (array_contains(hitList, _e)) continue;
 			array_push(hitList, _e);
-			_e.receive_hit(attack_power(), attack_type(), id, 2);
+			_e.receive_hit(attack_power(), attack_type(), id, 2, swingCrit);
 		}
 		ds_list_destroy(_list);
 	}
@@ -1050,4 +1188,150 @@ function draw_act_hud()
 	draw_set_colour(c_white);
 	draw_set_halign(fa_left);
 	draw_set_font(fnt_default);
+}
+
+function popup(_text, _col) { if (global.combatCfg.popups) show_number(_text, _col); }
+
+function atk_info(_i)
+{
+	if (_i == undefined) _i = {};
+	return { dodge: _i[$ "dodge"] ?? DodgeType.NORMAL, parryable: _i[$ "parryable"] ?? true, blockable: _i[$ "blockable"] ?? true };
+}
+
+// ---- Dodge
+function dodge_start()
+{
+	dodgeT = global.combatCfg.dodgeFrames;
+	dodgeAge = 0;
+	dodgeHit = false;
+	if (onGround) fx_emit("dodge_puff", x, bbox_bottom, 1, { angle: (facing > 0) ? 180 : 0, spread: 50 });
+}
+
+function dodge_end()
+{
+	dodgeT = 0;
+	dodgeCd = dodgeHit ? global.combatCfg.dodgeCdHit : global.combatCfg.dodgeCdMiss;   // a whiff costs more
+}
+
+function dodge_check(_a, _src)
+{
+	if (dodgeT <= 0 || _a.dodge == DodgeType.NONE) return false;
+	var _c = global.combatCfg;
+	var _perfect = (dodgeAge <= _c.dodgePerfect);
+	if (_a.dodge == DodgeType.PERFECT && !_perfect) return false;   // only a perfect dodge avoids this one
+
+	dodgeHit = true;
+	if (_perfect)
+	{
+		boostT = _c.boostFrames;
+		fastAtkT = _c.fastAtkFrames;
+		fx_emit("spark_dodge", x, (bbox_top + bbox_bottom) / 2, 1);
+		flashTimer = flashDur;
+		popup("Perfect Dodge", make_colour_rgb(120, 210, 255));
+	}
+	else popup("Dodge", c_white);
+	return true;
+}
+
+// ---- Parry
+function parry_stage()
+{
+	var _c = global.combatCfg;
+	if (parryAge < _c.parryPerfect) return "perfect";
+	if (parryAge < _c.parryPerfect + _c.parryWindow) return "parry";
+	return "block";
+}
+
+function parry_check(_a)   // "none", "perfect", "parry" or "block"
+{
+	if (state != PlayerState.PARRY) return "none";
+	var _st = parry_stage();
+	if (_st != "block" && _a.parryable) return _st;   // perfect or parry: stops it completely
+	return _a.blockable ? "block" : "none";           // after the window, or an unparryable attack: block it
+}
+
+function parry_point(_src)
+{
+	var _cy = (bbox_top + bbox_bottom) / 2;
+	if (_src != noone && instance_exists(_src))
+		return { x: lerp(x, _src.x, 0.35), y: lerp(_cy, (_src.bbox_top + _src.bbox_bottom) / 2, 0.35) };
+	return { x: x + facing * 10, y: _cy };
+}
+
+function bullet_time(_frames, _scale)
+{
+	global.timeScale = min(global.timeScale, _scale);   // drops at once for a hit-stop feel, then eases back
+	global.timeScaleTarget = _scale;
+	bulletT = _frames;
+}
+
+function stagger_src(_src, _frames)
+{
+	if (_src != noone && instance_exists(_src) && is_enemy(_src)) _src.stagger(_frames);
+}
+
+function parry_success(_st, _src)
+{
+	var _c = global.combatCfg;
+	var _pt = parry_point(_src);
+	parryHit = true;
+	iframes = max(iframes, 8);
+	if (_src != noone && instance_exists(_src) && _src.x != x) facing = sign(_src.x - x);
+
+	if (_st == "perfect")
+	{
+		fx_emit("spark_perfect", _pt.x, _pt.y, 1);
+		fx_flash(_pt.x, _pt.y, _c.flashPerfect, 12, make_colour_rgb(255, 225, 120));
+		screen_shake(5);
+		bullet_time(_c.bulletPerfect, _c.bulletPerfectScale);
+		critT = _c.critWindow;                                // the next melee is a guaranteed crit
+		stagger_src(_src, _c.staggerPerfect);
+		popup("Perfect Parry", make_colour_rgb(255, 215, 60));
+	}
+	else
+	{
+		fx_emit("spark_parry", _pt.x, _pt.y, 1);
+		fx_flash(_pt.x, _pt.y, _c.flashParry, 8, make_colour_rgb(255, 225, 120));
+		screen_shake(3);
+		bullet_time(_c.bulletParry, _c.bulletParryScale);
+		stagger_src(_src, _c.staggerParry);
+		popup("Parry", make_colour_rgb(255, 215, 60));
+	}
+}
+
+// Blocking: reduction grows with DEF
+function block_damage(_dmg)
+{
+	var _c = global.combatCfg;
+	var _def = stat_get("def");
+	var _pct = min(_c.blockMax, _c.blockBase + _c.blockDefScale * _def / (_def + _c.blockDefHalf));
+	return max(1, round(_dmg * (1 - _pct)));
+}
+
+function state_parry()
+{
+	var _c = global.combatCfg;
+	parryAge += global.timeScale;
+
+	hSpd = approach(hSpd, 0, onGround ? groundFric * 3 : airFric * 3);   // left/right movement is halted
+	if (onGround) { if (vSpd > 0) vSpd = 0; }
+	else vSpd += grav;
+
+	sprite_index = spr[$ "parry"] ?? spr.idle;   // add spr.parry to your sprite struct when you have one
+	image_index = 0;
+
+	if (parryAge >= _c.parryPerfect + _c.parryWindow + _c.parryBlockFrames)
+	{
+		parryCd = parryHit ? _c.parryCdHit : _c.parryCdMiss;
+		state_change(onGround ? PlayerState.FREE : PlayerState.IN_AIR);
+	}
+}
+
+// Plays the current act's art for a key. Returns false if it has none, so the old primitive effect can take over.
+function act_art(_key, _x, _y, _o = {})
+{
+	var _a = actCur[$ "art"];
+	if (_a == undefined || _a[$ _key] == undefined) return false;
+	art_play(_a[$ _key], _x, _y, struct_merge({ facing: facing }, _o));
+	return true;
 }

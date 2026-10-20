@@ -49,6 +49,15 @@ if (instance_exists(obj_slab)) exit;
 if (rebinding)
 {
 	if (keyboard_check_pressed(vk_escape)) { rebinding = false; io_clear(); exit; }
+	if (keyboard_check_pressed(vk_delete))
+	{
+		global.binds[$ _it.action][_it.slot] = -1;
+		rebinding = false;
+		settings_save();
+		menu_sfx("select");
+		io_clear();
+		exit;
+	}
 	if (keyboard_check_pressed(vk_anykey))
 	{
 		global.binds[$ _it.action][_it.slot] = keyboard_lastkey;

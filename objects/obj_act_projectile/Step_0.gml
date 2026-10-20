@@ -15,6 +15,10 @@ vv += grav * _ts;
 x += hv * _ts;
 y += vv * _ts;
 
+age += _ts;
+trailT -= _ts;
+if (trailT <= 0 && art[$ "trail"] != undefined) { trailT = 3; art_play(art.trail, x, y); }
+
 array_push(trail, [x, y]);
 if (array_length(trail) > 8) array_delete(trail, 0, 1);
 

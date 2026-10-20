@@ -19,15 +19,16 @@ function mn_rebind(_label, _action, _hint = "", _tint = undefined)
 function controls_items()
 {
 	var _acts = [
-		["left",   "Left",     "Move left."],
-		["right",  "Right",    "Move right."],
-		["up",     "Up",       "Aim up. Also moves the Action cursor."],
-		["down",   "Down",     "Aim down. Also moves the Action cursor."],
-		["jump",   "Jump",     "Hold for a higher jump."],
-		["run",    "Run",      "Hold to run. In the Action menu, cycles acts backward."],
-		["attack", "Attack",   "Swing your weapon. In the Action menu, cycles acts forward."],
-		["action", "Act Menu", "Hold to open the Action menu, release to perform the act."],
-		["inventory", "Inventory", "Open and close the inventory."]
+		["left",      "Left",        "Move left. Also moves the Action cursor."],
+		["right",     "Right",       "Move right. Also moves the Action cursor."],
+		["up",        "Up",          "Aim up. Also moves the Action cursor."],
+		["down",      "Down",        "Aim down. Also moves the Action cursor."],
+		["jump",      "Jump",        "Hold for a higher jump."],
+		["run",       "Run / Dodge", "Hold to run. Tap to dodge. In the Action menu, cycles acts backward."],
+		["parry",     "Parry",       "Hold to brace. Time it right to parry, otherwise you block."],
+		["attack",    "Attack",      "Swing your weapon. In the Action menu, cycles acts forward."],
+		["action",    "Act Menu",    "Hold to open the Action menu, release to perform the act."],
+		["inventory", "Inventory",   "Open and close the inventory."]
 	];
 	var _items = [];
 	for (var i = 0; i < array_length(_acts); i++) array_push(_items, mn_rebind(_acts[i][1], _acts[i][0], _acts[i][2]));

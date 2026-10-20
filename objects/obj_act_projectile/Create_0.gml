@@ -1,4 +1,6 @@
 life = SEC * 3;
+age = 0;
+trailT = 0;
 trail = [];
 
 function impact(_e)
@@ -18,5 +20,6 @@ function impact(_e)
 		act_fx("ring", { x1: x, y1: y, r0: 4, r1: splash, col: col, life: 14 });
 		screen_shake(2);
 	}
+	if (art[$ "hit"] != undefined) art_play(art.hit, x, y);
 	instance_destroy();
 }

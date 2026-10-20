@@ -1,10 +1,26 @@
 if (global.paused) exit;
 
+var _dt = global.timeScale;
+if (dodgeT > 0)
+{
+	dodgeT -= _dt;
+	dodgeAge += _dt;
+	act_afterimage();                       // the dodge trail
+	if (dodgeT <= 0) dodge_end();
+}
+else dodgeCd = max(0, dodgeCd - _dt);
+parryCd  = max(0, parryCd - _dt);
+boostT   = max(0, boostT - _dt);
+fastAtkT = max(0, fastAtkT - _dt);
+speedMult = lerp(speedMult, (boostT > 0) ? global.combatCfg.boostMult : 1, 0.2);
+if (bulletT > 0) { bulletT--; if (bulletT <= 0 && state != PlayerState.ACTION) global.timeScaleTarget = 1; }   // real frames
+if (critT > 0) critT--;
+
 effects_update();
 if (confused) { var _t = kLeft; kLeft = kRight; kRight = _t; }
 
 iframes = max(0, iframes - 1);
-image_alpha = (iframes > 0 && (iframes div 3) mod 2 == 1) ? 0.35 : 1;
+image_alpha = (dodgeT > 0) ? 0.55 : ((iframes > 0 && (iframes div 3) mod 2 == 1) ? 0.35 : 1);
 
 if (stunTimer > 0)
 {
@@ -24,14 +40,17 @@ else
 	onGround = place_meeting(x, y + 1, obj_col);
 	stateTimer += global.timeScale;
 
-	kLeft	=	input_check("left");
-	kRight  =	input_check("right");
-	kJump	=	input_pressed("up");
-	kJumpHeld = input_check("up");
-	kDown	=	input_check("down");
-	kRun	=	input_check("run");
-	kSelect =	input_pressed("attack");
-	kAction =	input_check("action");
+	kLeft		  =		input_check("left");
+	kRight		  =		input_check("right");
+	kJump		  =		input_pressed("up");
+	kJumpHeld	  =		input_check("up");
+	kDown		  =		input_check("down");
+	kRun	      =		input_check("run");
+	kRunPressed   =		input_pressed("run");
+	kParry        =		input_check("parry");
+	kParryPressed =		input_pressed("parry");
+	kSelect		  =		input_pressed("attack");
+	kAction		  =		input_check("action");
 
 	if (hpChipTimer > 0) hpChipTimer--;
 	else hpChip = lerp(hpChip, hp, hpChipSpeed);
@@ -67,6 +86,7 @@ else
 		case PlayerState.LAND:		state_land();	 break;
 		case PlayerState.ATTACK:	state_attack();	 break;
 		case PlayerState.ACTION:	state_action();	 break;
+		case PlayerState.PARRY:		state_parry();	 break;
 		case PlayerState.HURT:		state_hurt();	 break;
 		case PlayerState.DEAD:		state_dead();	 break;
 		case PlayerState.ACT_RUN:	state_act_run(); break;

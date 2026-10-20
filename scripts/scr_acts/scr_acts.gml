@@ -69,6 +69,7 @@ global.acts[PLAYER_ACT.SLAM] = {
 				act_hit_circle(x, bbox_bottom - 6, 24, 1.2, 3);
 				act_wave(-1);
 				act_wave(1);
+				act_art("impact", x, bbox_bottom);
 				screen_shake(7);
 				flashTimer = flashDur;
 				actPhase = 3; actTimer = 0;
@@ -103,7 +104,7 @@ global.acts[PLAYER_ACT.PUNCTURE] = {
 		{
 			case 0:   // windup
 				hSpd = 0; vSpd = 0;
-				if (actTimer >= 7) { actPhase = 1; actTimer = 0; flashTimer = 3; }
+				if (actTimer >= 7) { actPhase = 1; actTimer = 0; flashTimer = 3; act_art("thrust", x, (bbox_top + bbox_bottom) / 2, { angle: actData.dir }); }
 				break;
 
 			case 1:   // thrust
@@ -147,7 +148,8 @@ global.acts[PLAYER_ACT.X_SLASH] = {
 					// slash 1 cuts down-forward, slash 2 cuts down-back, forming the X
 					var _ax = (actData.n == 0) ? x - facing * 8  : x + facing * 42;
 					var _bx = (actData.n == 0) ? x + facing * 42 : x - facing * 8;
-					act_fx("line", { x1: _ax, y1: _top, x2: _bx, y2: _bot, thick: 6, col: actCur.col, life: 12 });
+					if (!act_art((actData.n == 0) ? "slash1" : "slash2", x + facing * 18, (_top + _bot) / 2))
+						act_fx("line", { x1: _ax, y1: _top, x2: _bx, y2: _bot, thick: 6, col: actCur.col, life: 12 });
 					screen_shake(2);
 				}
 				break;
@@ -277,6 +279,7 @@ global.acts[PLAYER_ACT.LIGHTNING_FLASH] = {
 				actPhase = 1; actTimer = 0;
 				actData.px = x; actData.py = y;
 				flashTimer = flashDur;
+				act_art("start", x, (bbox_top + bbox_bottom) / 2);
 				screen_shake(6);
 			}
 			return;
@@ -291,6 +294,7 @@ global.acts[PLAYER_ACT.LIGHTNING_FLASH] = {
 		{
 			if (!place_meeting(_tx, _ty, obj_col)) { x = _tx; y = _ty; }
 			hSpd = 0; vSpd = 0;
+			act_art("arrive", x, (bbox_top + bbox_bottom) / 2);
 			act_end();
 			return;
 		}

@@ -3,16 +3,17 @@ global.gameTitle = "SwordPotion";
 global.settingsDefault = { fullscreen: false, resolution: 3, graphics: 3, master: 1, sfx: 1, music: 1, language: 0 };
 
 global.bindsDefault = {
-	left: [vk_left, ord("A")],
-	right: [vk_right, ord("D")],
-	up: [vk_up, ord("W")],
-	down: [vk_down, ord("S")],
-	jump: [vk_up, ord("W")],
-	run: [vk_shift, ord("X")],
+	left:   [vk_left,  ord("A")],
+	right:  [vk_right, ord("D")],
+	up:     [vk_up,    ord("W")],
+	down:   [vk_down,  ord("S")],
+	jump:   [vk_up,    ord("W")],
+	run:    [vk_shift, ord("X")],      // tap = dodge, hold = sprint
 	attack: [vk_enter, ord("Z")],
 	action: [vk_control, ord("C")],
-	inventory: [vk_tab, ord("V")]
-}
+	inventory: [vk_tab, -1],
+	parry:  [vk_space, -1]
+};
 
 global.settings = json_parse(json_stringify(global.settingsDefault));
 global.binds = json_parse(json_stringify(global.bindsDefault));
@@ -128,39 +129,7 @@ function key_name(_k)
 		case vk_down:      return "Down";
 		case vk_backspace: return "Bksp";
 	}
+	if (_k <= 0) return "-";
 	if (_k >= 33 && _k <= 126) return chr(_k);
 	return "Key " + string(_k);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

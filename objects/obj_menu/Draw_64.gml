@@ -267,7 +267,7 @@ matrix_set(matrix_world, matrix_build_identity());
 
 // ---- Footer: the selected option's hint, or the key legend
 var _hint = _items[_selI][$ "hint"];
-var _foot = rebinding ? "Press a key (Esc to cancel)"
+var _foot = rebinding ? "Press a key (Esc to cancel, Del to clear)"
 	: (((_hint != undefined) && (_hint != "")) ? _hint : "");
 draw_set_halign(fa_left);
 draw_set_valign(fa_middle);

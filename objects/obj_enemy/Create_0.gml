@@ -16,6 +16,7 @@ cfg = {
 	sightRange: 120, loseRange: 220, needLineOfSight: false,
 	idleTime: 60, roamMin: 60, roamMax: 150, avoidLedges: true, chaseMult: 1.6,
 	attackState: EnemyState.ATTACK, attackRange: 24, atkType: DamageType.BLUDGEONING,
+	atkInfo: { dodge: DodgeType.NORMAL, parryable: true, blockable: true },
 	atkWindup: 20, atkActive: 8, atkRecover: 8, atkCooldown: 90,
 	atkReach: 14, atkOffsetY: -8, atkRadius: 10,
 	atkKnock: 3,
@@ -163,31 +164,48 @@ function sees_target()
 function attack_power() { return stat_get(global.damageTypes[cfg.atkType].atk) * outMult; }
 
 // One melee hit per attack. Custom states (like a dash) can call this too.
-function try_melee()
+function try_melee(_info = undefined)
 {
 	if (hitDone) return false;
+	if (_info == undefined) _info = cfg.atkInfo;
 	var _t = collision_circle(x + facing * cfg.atkReach, y + cfg.atkOffsetY, cfg.atkRadius, target, false, true);
 	if (_t == noone) return false;
 	hitDone = true;
-	_t.take_damage(attack_power(), cfg.atkType, id, cfg.atkKnock);
+	_t.take_damage(attack_power(), cfg.atkType, id, cfg.atkKnock, _info);
 	return true;
+}
+
+// Parry stagger: interrupts whatever it was doing and delays its next attack
+function stagger(_frames)
+{
+	if (state == EnemyState.DEAD) return;
+	attackCd = max(attackCd, _frames);
+	hSpd = 0;
+	if (state_has(EnemyState.HURT))
+	{
+		hurtMult = max(1, _frames / cfg.hurtTime);
+		state_change(EnemyState.HURT, true);
+	}
+	else stunTimer = max(stunTimer, _frames);   // enemies without a hurt state just freeze
 }
 
 // ---------------- Taking damage ----------------
 // _atk is the attacker's final offensive number, _type is a DamageType
-function receive_hit(_atk, _type = DamageType.BLUDGEONING, _src = noone, _knock = 2)
+function receive_hit(_atk, _type = DamageType.BLUDGEONING, _src = noone, _knock = 2, _crit = false)
 {
 	if (state == EnemyState.DEAD || iframes > 0 || stats.hp <= 0) return 0;
 
 	var _row  = global.damageTypes[_type];
 	var _def  = stat_get(_row.def);
 	var _dmg  = round(max(cfg.minDamage, _atk - _def) * affinity[_type] * vulnMult);
+	if (_crit) _dmg = round(_dmg * global.combatCfg.critMult);
 	if (_dmg <= 0) return 0;   // immune
 
 	var _hit = _row[$ "hit"] ?? {};
 
 	stats.hp = max(0, stats.hp - _dmg);
-	show_number(_dmg, _row[$ "hitCol"] ?? c_white);
+	show_number(_crit ? string(_dmg) + "!" : _dmg, _crit ? make_colour_rgb(255, 215, 60) : (_row[$ "hitCol"] ?? c_white));
+	if (_crit) { fx_emit("spark_crit", x, (bbox_top + bbox_bottom) / 2, 1); screen_shake(3); }
 	flashTimer = flashDur;
 	iframes = cfg.iframes;
 
