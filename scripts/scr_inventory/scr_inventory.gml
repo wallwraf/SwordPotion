@@ -23,9 +23,9 @@ global.equipLabels = {
 
 // Give any of these a font asset, e.g. global.invFonts.tipName = fnt_title; -1 = your default font
 global.invFonts = {
-	header: fnt_damage, list: fnt_quaver, label: fnt_3x6, stats: fnt_damage,
-	tipName: fnt_damage, tipSub: fnt_menu, tipDesc: fnt_quaver, tipStat: fnt_menu,
-	tipBonus: fnt_menu, tipFoot: fnt_3x6
+	header: fnt_notjammono, list: fnt_8bitoperator, label: fnt_3x6, stats: fnt_boldpixels,
+	tipName: fnt_abaddonbold, tipSub: fnt_boldpixels, tipDesc: fnt_abaddon, tipStat: fnt_pixelsans,
+	tipBonus: fnt_pixelsans, tipFoot: fnt_3x6
 };
 
 function inv_font(_key) { draw_set_font(global.invFonts[$ _key] ?? -1); }

@@ -1,6 +1,6 @@
 {
   "$GMFont":"",
-  "%Name":"fnt_arrow",
+  "%Name":"fnt_arrow_1",
   "AntiAlias":0,
   "applyKerning":0,
   "ascender":13,
@@ -117,7 +117,7 @@
   "last":0,
   "lineHeight":16,
   "maintainGms1Font":false,
-  "name":"fnt_arrow",
+  "name":"fnt_arrow_1",
   "parent":{
     "name":"Fonts",
     "path":"folders/Fonts.yy",

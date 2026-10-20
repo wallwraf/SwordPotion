@@ -1020,7 +1020,7 @@ function draw_status_pips(_px, _py, _s)
 function draw_act_hud()
 {
 	var _list = act_equipped();
-	draw_set_font(fnt_arrow);
+	draw_set_font(fnt_8bitoperator);
 	draw_set_halign(fa_center);
 
 	if (array_length(_list) == 0)

@@ -5,7 +5,7 @@ var _y = round(y);
 
 draw_set_halign(fa_center);
 draw_set_halign(fa_bottom);
-draw_set_font(fnt_damage);
+draw_set_font(fnt_boldpixels);
 draw_set_alpha(alpha);
 
 // Outline the Text

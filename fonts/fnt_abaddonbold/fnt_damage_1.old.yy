@@ -119,8 +119,8 @@
   "maintainGms1Font":false,
   "name":"fnt_damage",
   "parent":{
-    "name":"Fonts",
-    "path":"folders/Fonts.yy",
+    "name":"SwordPotion",
+    "path":"SwordPotion.yyp",
   },
   "pointRounding":0,
   "ranges":[

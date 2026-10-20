@@ -1,6 +1,6 @@
 {
   "$GMFont":"",
-  "%Name":"fnt_menu",
+  "%Name":"fnt_notjammono",
   "AntiAlias":0,
   "applyKerning":0,
   "ascender":13,
@@ -117,7 +117,7 @@
   "last":0,
   "lineHeight":16,
   "maintainGms1Font":false,
-  "name":"fnt_menu",
+  "name":"fnt_notjammono",
   "parent":{
     "name":"Fonts",
     "path":"folders/Fonts.yy",

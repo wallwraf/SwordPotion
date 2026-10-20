@@ -191,8 +191,8 @@
   "maintainGms1Font":false,
   "name":"fnt_default",
   "parent":{
-    "name":"SwordPotion",
-    "path":"SwordPotion.yyp",
+    "name":"Fonts",
+    "path":"folders/Fonts.yy",
   },
   "pointRounding":0,
   "ranges":[

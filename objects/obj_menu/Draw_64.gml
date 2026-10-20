@@ -11,7 +11,7 @@ var _pwLay  = _W * panelTarget;    // the width buttons are laid out for
 var _e = 1 - power(1 - openAnim, 3);          // the open/close ease
 var _outS = clamp(openAnim * 2.5, 0, 1);      // buttons and title shrink away while closing
 
-draw_set_font(fnt_menu);
+draw_set_font(fnt_notjammono);
 if (ingame)
 {
 	var _pw = _pwFull * _e;
@@ -85,13 +85,13 @@ if (cS > 0.01)
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
 	draw_set_colour(merge_colour(bgCol, c_black, 0.7));
-	draw_set_font(fnt_damage);
+	draw_set_font(fnt_boldpixels);
 	draw_text_transformed(bpx(0, 0) + 3 * _u, bpy(0, 0) + 4 * _u, _title, _tsz, _tsz, menuAngle);
 	draw_set_colour(c_white);
 	draw_text_transformed(bpx(0, 0), bpy(0, 0), _title, _tsz, _tsz, menuAngle);
 	var _uv = _th * 0.55;
 	draw_title_bar(-4 * _u, _tw + 30 * _u, _uv, 4 * _u, _u);
-	draw_set_font(fnt_menu);
+	draw_set_font(fnt_notjammono);
 }
 
 // ---- Layout
