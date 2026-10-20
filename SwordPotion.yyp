@@ -69,6 +69,7 @@
     {"id":{"name":"fnt_pixelsans","path":"fonts/fnt_pixelsans/fnt_pixelsans.yy",},},
     {"id":{"name":"fnt_quaver","path":"fonts/fnt_quaver/fnt_quaver.yy",},},
     {"id":{"name":"music_play()","path":"notes/music_play()/music_play().yy",},},
+    {"id":{"name":"Parrying","path":"notes/Parrying/Parrying.yy",},},
     {"id":{"name":"obj_act_fx","path":"objects/obj_act_fx/obj_act_fx.yy",},},
     {"id":{"name":"obj_act_projectile","path":"objects/obj_act_projectile/obj_act_projectile.yy",},},
     {"id":{"name":"obj_act_wave","path":"objects/obj_act_wave/obj_act_wave.yy",},},

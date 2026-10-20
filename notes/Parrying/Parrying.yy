@@ -1,0 +1,11 @@
+{
+  "$GMNotes":"v1",
+  "%Name":"Parrying",
+  "name":"Parrying",
+  "parent":{
+    "name":"SwordPotion",
+    "path":"SwordPotion.yyp",
+  },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
+}
