@@ -253,6 +253,139 @@ function act_equipped()   // compact list in slot order
 	return _out;
 }
 
+// ---- Scarf:
+scarfCols = [make_colour_rgb(255, 128, 112), make_colour_rgb(222, 58, 72), make_colour_rgb(142, 30, 58)];   // highlight, base, shade (2 or 3 colours)
+scarfOutline = make_colour_rgb(52, 14, 40);                  // the one outline colour
+
+scarfRadii = [3, 2.6, 2.2, 1.8, 1.4];   // one radius per node. Node 0 is the anchor. The length of this array is the node count.
+scarfStep  = [3.4, 0.9];                // rest offset from each node to the next: backwards, then down
+scarfK    = 18;                         // stiffness
+scarfDamp = 0.94;                       // damping per step at normal speed
+scarfGrav = 15;                         // gravity, pixels per second squared
+scarfSlack = 2;                         // how far past the rest length a segment may stretch
+scarfFlutter = 120;                     // ripple while moving. 0 = pure Celeste
+scarfSub = 3;                           // discs drawn per segment
+
+scarfAnchorX = 2;      // pixels toward the back from the sprite's centre (flips with facing)
+scarfAnchorY = 0.32;   // how far down the mask the neck is, 0..1
+
+scarf = [];
+scarfReady = false;
+scarfT = 0;
+
+function scarf_anchor()
+{
+	return {
+		x: (bbox_left + bbox_right) / 2 - facing * scarfAnchorX,
+		y: bbox_top + (bbox_bottom - bbox_top) * scarfAnchorY
+	};
+}
+
+// Lay the whole scarf out in its rest shape at the anchor
+function scarf_reset(_a)
+{
+	scarf = [];
+	for (var i = 0; i < array_length(scarfRadii); i++)
+		array_push(scarf, { x: _a.x - facing * scarfStep[0] * i, y: _a.y + scarfStep[1] * i, vx: 0, vy: 0 });
+	scarfReady = true;
+}
+
+function scarf_update()
+{
+	var _fps = game_get_speed(gamespeed_fps);
+	var _dt = global.timeScale / _fps;
+	var _a = scarf_anchor();
+
+	// first frame, or the player teleported (a dash snap, a room change): don't drag the scarf across the level
+	if (!scarfReady || point_distance(_a.x, _a.y, scarf[0].x, scarf[0].y) > 80) { scarf_reset(_a); return; }
+
+	scarfT += _dt;
+	var _damp = power(scarfDamp, _dt * _fps);    // 0.94 per step at normal speed, correct at any time scale
+	var _speed = min(1, abs(hSpd));
+
+	// node 0 is glued to the player
+	scarf[0].x = _a.x;
+	scarf[0].y = _a.y;
+
+	for (var i = 1; i < array_length(scarf); i++)
+	{
+		var _p = scarf[i - 1];
+		var _n = scarf[i];
+
+		// each node is pulled toward "the previous node plus the rest offset"
+		var _ox = -facing * scarfStep[0];
+		var _oy = scarfStep[1];
+		var _tx = _p.x + _ox;
+		var _ty = _p.y + _oy;
+
+		// F = -k * x - c * v: a spring with damping, plus gravity so it settles
+		_n.vx += (_tx - _n.x) * scarfK * _dt;
+		_n.vy += (_ty - _n.y) * scarfK * _dt;
+		_n.vy += scarfGrav * _dt;
+		_n.vy += sin(scarfT * 14 + i * 1.1) * scarfFlutter * _speed * _dt;   // the scarf ripples while you move
+		_n.vx *= _damp;
+		_n.vy *= _damp;
+		_n.x += _n.vx * _dt;
+		_n.y += _n.vy * _dt;
+
+		// never stretch farther than the rest length + slack from the node before it
+		var _maxD = point_distance(0, 0, _ox, _oy) + scarfSlack;
+		var _d = point_distance(_n.x, _n.y, _p.x, _p.y);
+		if (_d > _maxD)
+		{
+			var _dir = point_direction(_p.x, _p.y, _n.x, _n.y);
+			_n.x = _p.x + lengthdir_x(_maxD, _dir);
+			_n.y = _p.y + lengthdir_y(_maxD, _dir);
+		}
+	}
+}
+
+// A pixel-perfect filled disc: every pixel where i*i + j*j <= r*r, drawn as one run per row.
+// _cols is one colour or an array of bands from top to bottom.
+function draw_px_disc(_cx, _cy, _r, _cols)
+{
+	_cx = round(_cx);
+	_cy = round(_cy);
+	var _R = ceil(_r);
+	var _bands = is_array(_cols);
+	var _n = _bands ? array_length(_cols) : 1;
+
+	for (var j = -_R; j <= _R; j++)
+	{
+		var _h2 = _r * _r - j * j;
+		if (_h2 < 0) continue;
+		var _w = floor(sqrt(_h2));
+		draw_set_colour(_bands ? _cols[clamp(floor((j + _R) / (2 * _R + 1) * _n), 0, _n - 1)] : _cols);
+		draw_rectangle(_cx - _w, _cy + j, _cx + _w, _cy + j, false);
+	}
+}
+
+function draw_scarf()
+{
+	if (!scarfReady) return;
+
+	// a list of discs [x, y, radius]: every node, plus a few between each pair so it reads as one ribbon
+	var _list = [];
+	for (var i = 0; i < array_length(scarf) - 1; i++)
+	{
+		var _a = scarf[i], _b = scarf[i + 1];
+		for (var k = 0; k < scarfSub; k++)
+		{
+			var _t = k / scarfSub;
+			array_push(_list, [lerp(_a.x, _b.x, _t), lerp(_a.y, _b.y, _t), lerp(scarfRadii[i], scarfRadii[i + 1], _t)]);
+		}
+	}
+	var _end = array_length(scarf) - 1;
+	array_push(_list, [scarf[_end].x, scarf[_end].y, scarfRadii[_end]]);
+
+	draw_set_alpha(image_alpha);
+	// pass 1: every outline (radius + 1). pass 2: every fill. Tip first, so the base sits on top.
+	for (var i = array_length(_list) - 1; i >= 0; i--) draw_px_disc(_list[i][0], _list[i][1], _list[i][2] + 1, scarfOutline);
+	for (var i = array_length(_list) - 1; i >= 0; i--) draw_px_disc(_list[i][0], _list[i][1], _list[i][2], scarfCols);
+	draw_set_alpha(1);
+	draw_set_colour(c_white);
+}
+
 function act_start(_act, _target)
 {
 	actCur = global.acts[_act];

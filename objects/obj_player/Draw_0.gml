@@ -1,3 +1,4 @@
+draw_scarf();
 draw_self();
 
 if (global.hitbox)

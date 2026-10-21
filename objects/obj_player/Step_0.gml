@@ -108,6 +108,8 @@ else
 			else if (!place_meeting(x, y - i, obj_col))				{ y -= i;			_fixed = true; }
 		}
 	}
+	
+	scarf_update();
 
 	// 
 	if (abs(y - _y_start) > abs(vSpd * global.timeScale) + 2)
